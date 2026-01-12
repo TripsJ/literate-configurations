@@ -1,0 +1,1328 @@
+#+title: Shell Configuration (Bash & Zsh)
+#+author: Jérôme Trips
+#+property: header-args :tangle no :noweb no-export :results silent
+#+startup: overview
+
+* About this Configuration
+This file is part of an ongoing process to create literate configuration files in org mode.
+It is part of a Github repository located at ***insert github repo link***
+You are free to use modify and distribute this file as you wish, as long as you provide a link to the source matrerial on my github.
+
+This literate shell configuration maintains both Bash and Zsh from a single Org file.
+Code is organized by topic, shared between shells using noweb references, with shell-specific blocks where needed.
+
+Structure:
+- *Shared* blocks: Used by both Bash and Zsh (aliases, functions, environment variables)
+- *Shell-Specific* blocks: Bash-only or Zsh-only configurations (options, completion settings)
+
+To regenerate the shell configs, run:
+  =C-c C-v t= (in Emacs)
+  or =org-babel-tangle-file "shellrc.org"=
+
+** Key Org-Babel Concepts Used
+
+- =:tangle FILE= - specifies which file(s) to write the code block to
+- =:noweb yes= - enables noweb reference expansion (=<<ref-name>>=)
+- =#+name:= - labels a code block for noweb reference
+- =#+noweb-ref:= - attaches content to a named reference for inlining
+
+** File Generation Notes
+
+After editing this file, tangle with =C-c C-v t= to generate:
+- ~/.bashrc
+- ~/.zshrc
+
+Both files will source this tangle output with their native sourcing mechanism.
+
+---
+
+* Initialization & Sourcing
+
+This section ensures proper shell initialization across login and interactive shells.
+
+** Shared Pre-Initialization
+
+Code that runs before anything else, for both shells.
+It checks first if it is running an interactive shell and if not, just quits
+Then it adds the following directories to the PATH variable
+    - ~/.bin :
+    - ~/.local/bin
+    - ~/Scripts: My personal Script folder where i store custom bits of code
+    - ~/.screenlayout: Presonal folder that contains xrandr configurations to easily pass between different Monitor  setups
+    - user/bin/python the location of the python binary as i develope quite a lot in Python
+
+      the if  [-d "/directory/subdirectory] syntax makes ure to check that a folder exsists before it is added to the path 
+      
+#+name: shared-preface
+#+begin_src bash
+    # Generated from literate config: ~/dotfiles/shellrc.org
+    # Do not edit directly - edit the .org file and retangle
+
+    # Exit early if running non-interactively
+    [[ $- == *i* ]] || return
+
+  if [ -d "$HOME/.bin" ] ;
+     then PATH="$HOME/.bin:$PATH"
+   fi
+
+   if [ -d "$HOME/.local/bin" ] ;
+     then PATH="$HOME/.local/bin:$PATH"
+   fi
+
+   #add personal scripts folder to path
+   if [ -d "$HOME/Scripts" ] ;
+   	then PATH="$HOME/Scripts:$PATH"
+   fi
+
+   #add arandr scripts to path to switch monito setups
+   if [ -d "$HOME/.screenlayout" ] ;
+   	then PATH="$HOME/.screenlayout:$PATH"
+   fi
+   #add python to path
+   PATH="/usr/bin/python:$PATH"
+#+end_src
+
+** Bash Initialization Header
+
+Specific to =~/.bashrc= - runs on every interactive bash shell.
+
+#+begin_src bash :tangle ~/.bashrc
+  <<shared-preface>>
+  bind "set completion-ignore-case on"
+#+end_src
+
+** Zsh Initialization Header
+
+Specific to =~/.zshrc= - runs on every interactive zsh shell.
+
+#+begin_src zsh :tangle ~/.zshrc
+  <<shared-preface>>
+#+end_src
+***  load oh my zsh
+Path to your oh-my-zsh installation.
+nstallation via script from github
+#+BEGIN_SRC zsh :tangle no
+export ZSH="/home/$USER/.oh-my-zsh"
+#+END_SRC
+installation via paru -S oh-my-zsh-git
+
+#+BEGIN_SRC zsh :tangle ~/.zshrc
+export ZSH=/usr/share/oh-my-zsh/
+#+END_SRC
+
+*** swap zsh theme to somethin smaler if run from inside emacs
+#+BEGIN_SRC zsh :tangle ~/.zshrc
+if [[ "$INSIDE_EMACS" = 'vterm' ]]; then
+	ZSH_THEME="avit"
+else
+	ZSH_THEME="dst"
+fi
+#+END_SRC
+
+
+*** Initialize Oh My Zsh and its plugins and specific variables
+# Set list of themes to pick from when loading at random
+# Setting this variable when ZSH_THEME=random will cause zsh to load
+# a theme from this variable instead of looking in ~/.oh-my-zsh/themes/
+# If set to an empty array, this variable will have no effect.
+
+# ZSH_THEME_RANDOM_CANDIDATES=( "robbyrussell" "agnoster" )
+
+# ZSH_THEME_RANDOM_IGNORED=(pygmalion tjkirch_mod)
+
+# Uncomment the following line to use case-sensitive completion.
+# CASE_SENSITIVE="true"
+
+# Uncomment the following line to use hyphen-insensitive completion.
+# Case-sensitive completion must be off. _ and - will be interchangeable.
+# HYPHEN_INSENSITIVE="true"
+
+# Uncomment the following line to disable bi-weekly auto-update checks.
+# DISABLE_AUTO_UPDATE="true"
+
+# Uncomment the following line to automatically update without prompting.
+# DISABLE_UPDATE_PROMPT="true"
+
+# Uncomment the following line to change how often to auto-update (in days).
+#export UPDATE_ZSH_DAYS=13
+
+# Uncomment the following line if pasting URLs and other text is messed up.
+# DISABLE_MAGIC_FUNCTIONS=true
+
+# Uncomment the following line to disable colors in ls.
+# DISABLE_LS_COLORS="true"
+
+# Uncomment the following line to disable auto-setting terminal title.
+# DISABLE_AUTO_TITLE="true"
+
+# Uncomment the following line to enable command auto-correction.
+# ENABLE_CORRECTION="true"
+
+# Uncomment the following line to display red dots whilst waiting for completion.
+# COMPLETION_WAITING_DOTS="true"
+
+# Uncomment the following line if you want to disable marking untracked files
+# under VCS as dirty. This makes repository status check for large repositories
+# much, much faster.
+# DISABLE_UNTRACKED_FILES_DIRTY="true"
+
+# Uncomment the following line if you want to change the command execution time
+# stamp shown in the history command output.
+# You can set one of the optional three formats:
+# "mm/dd/yyyy"|"dd.mm.yyyy"|"yyyy-mm-dd"
+# or set a custom format using the strftime function format specifications,
+# see 'man strftime' for details.
+# HIST_STAMPS="mm/dd/yyyy"
+
+# Would you like to use another custom folder than $ZSH/custom?
+# ZSH_CUSTOM=/path/to/new-custom-folder
+
+# Which plugins would you like to load?
+# Standard plugins can be found in ~/.oh-my-zsh/plugins/*
+# Custom plugins may be added to ~/.oh-my-zsh/custom/plugins/
+# Example format: plugins=(rails git textmate ruby lighthouse)
+# Add wisely, as too many plugins slow down shell startup.
+
+#+BEGIN_SRC zsh :tangle ~/.zshrc
+
+    plugins=(z sudo command-not-found)
+
+  if [ -f $ZSH/oh-my-zsh.sh ]; then
+    source $ZSH/oh-my-zsh.sh
+  fi
+
+  if [ -f /usr/share/zsh/plugins/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh ]; then
+  source /usr/share/zsh/plugins/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh
+fi
+
+
+#+END_SRC
+---
+
+* Environment Variables
+
+Core environment setup shared by both shells.
+
+** Shared Exports
+
+#+name: shared-exports
+#+begin_src bash
+  export EDITOR='fresh'
+  export VISUAL='fresh'
+  export HISTCONTROL=ignoreboth:erasedups
+  export TERMINAL="alacritty -e"
+  export BROWSER='vivaldi-stable'
+  export PAGER='most'
+  export SSH_KEY_PATH="$HOME/.ssh/rsa_id"
+  export SSH_AUTH_SOCK="$XDG_RUNTIME_DIR/ssh-agent.socket"
+  export PIPENV_VENV_IN_PROJECT=1
+  export BAT_STYLE="full"
+  export MPV_HOME="$HOME/.config/mpv"
+  export MICRO_TRUECOLOR=True
+  PIPENV_VENV_IN_PROJECT=1 
+
+
+  # To have colors for ls and all grep commands such as grep, egrep and zgrep
+  export CLICOLOR=1
+  export LS_COLORS='no=00:fi=00:di=00;34:ln=01;36:pi=40;33:so=01;35:do=01;35:bd=40;33;01:cd=40;33;01:or=40;31;01:ex=01;32:*.tar=01;31:*.tgz=01;31:*.arj=01;31:*.taz=01;31:*.lzh=01;31:*.zip=01;31:*.z=01;31:*.Z=01;31:*.gz=01;31:*.bz2=01;31:*.deb=01;31:*.rpm=01;31:*.jar=01;31:*.jpg=01;35:*.jpeg=01;35:*.gif=01;35:*.bmp=01;35:*.pbm=01;35:*.pgm=01;35:*.ppm=01;35:*.tga=01;35:*.xbm=01;35:*.xpm=01;35:*.tif=01;35:*.tiff=01;35:*.png=01;35:*.mov=01;35:*.mpg=01;35:*.mpeg=01;35:*.avi=01;35:*.fli=01;35:*.gl=01;35:*.dl=01;35:*.xcf=01;35:*.xwd=01;35:*.ogg=01;35:*.mp3=01;35:*.wav=01;35:*.xml=00;31:'
+  #export GREP_OPTIONS='--color=auto' #deprecated
+  alias grep="/usr/bin/grep $GREP_OPTIONS"
+  unset GREP_OPTIONS
+
+  #Use bat for manpages
+  eval "$(batman --export-env)"
+
+     # ssh agent
+  eval "$(ssh-agent -s)"
+
+  #launch broot for use with lf
+  source /home/sulumar/.config/broot/launcher/bash/br
+#+end_src
+
+** Bash Exports
+
+Bash-specific environment variables.
+
+#+begin_src bash :tangle ~/.bashrc
+  <<shared-exports>>
+
+  # Bash-specific history settings
+  export HISTCONTROL=ignoredups:erasedups
+  export HISTTIMEFORMAT="%Y-%m-%d %H:%M:%S "
+  # Causes bash to append to history instead of overwriting it so if you start a new terminal, you have old session history
+  shopt -s histappend
+  PROMPT_COMMAND='history -a'
+#+end_src
+
+** Zsh Exports
+
+Zsh-specific environment variables.
+
+#+begin_src zsh :tangle ~/.zshrc
+<<shared-exports>>
+
+export ZSH=/usr/share/oh-my-zsh/
+# Zsh-specific history settings (handled via setopt below)
+#+end_src
+
+---
+
+* Core Options & Settings
+
+Shell behavior configuration.
+There is no common block here since bash and zsh use different syntax to set options
+Bash uses *shopt* where ZSH uses *setopt*
+
+** Bash Options
+
+#+begin_src bash :tangle ~/.bashrc
+# History
+shopt -s histappend           # Append to history file
+shopt -s cmdhist              # Multi-line commands in one history entry
+
+# Interactive features
+shopt -s checkwinsize         # Update LINES and COLUMNS after window resize
+shopt -s globstar             # ** matches all files recursively
+shopt -s extglob              # Extended glob patterns
+
+# Completion
+shopt -s progcomp             # Programmable completion
+#+end_src
+
+** Zsh Options
+
+#+begin_src zsh :tangle ~/.zshrc
+  #share commands between terminal instances
+  setopt GLOB_DOTS
+  # History
+  setopt HIST_APPEND            # Append to history file
+  setopt HIST_IGNORE_DUPS       # Ignore duplicate entries
+  setopt HIST_FIND_NO_DUPS      # Don't show duplicates in history search
+  setopt HIST_IGNORE_SPACE      # Ignore entries starting with space
+    
+
+  # Completion
+  setopt AUTO_LIST              # Automatically list completions
+  setopt AUTO_MENU              # Automatically use menu completion
+  setopt COMPLETE_IN_WORD       # Complete from middle of word
+  setopt ALWAYS_TO_END          # Move to end after completion
+
+  # Navigation
+  setopt AUTO_CD                # cd to directory if name is entered alone
+  setopt PUSHD_IGNORE_DUPS      # Ignore duplicate dirs in pushd
+#+end_src
+
+---
+
+* Aliases
+
+Shared command shortcuts and convenience functions.
+
+** Common Aliases
+*** typos and navigation
+#+name: typo-aliasses
+#+begin_src bash
+    # overwrite cat with bat
+    alias cat='bat'
+    #overwrite htop and top with btop
+    alias top='btop'
+    alias htop='btop'
+
+    #overwrite rm with trashcli to prevent accidental datalos
+    alias rm='trash -v'
+
+    # specific Directorys
+    alias cdp='cd ~/Documents/Code/Projects/'
+
+    # common aliasses
+    alias cls='clear'
+    alias ..='cd..'
+    alias ...='cd ~'
+
+
+    #fix obvious typo's
+    alias cd..='cd ..'
+    alias pdw='pwd'
+    alias udpate='sudo pacman -Syyu'
+    alias upate='sudo pacman -Syyu'
+    alias updte='sudo pacman -Syyu'
+    alias updqte='sudo pacman -Syyu'
+    alias upqll='paru -Syu --noconfirm'
+    alias upal='paru -Syu --noconfirm'
+    
+  #readable output
+  alias df='df -h'
+
+  #keyboard
+  alias setkb-azerty-be="sudo localectl set-x11-keymap be"
+  alias setkb-qwerty-us="sudo localectl set-x11-keymap us"
+
+  #pacman unlock
+  alias rmpacmanlock="sudo rm /var/lib/pacman/db.lck"
+
+      #free
+      alias free="free -mt"
+
+      #continue download
+      alias wget="wget -c"
+
+      #userlist
+      alias userlist="cut -d: -f1 /etc/passwd | sort"
+
+           #ps
+      alias psa="ps auxf"
+      alias psgrep="ps aux | grep -v grep | grep -i -e VSZ -e"
+
+      #grub update
+      alias update-grub="sudo grub-mkconfig -o /boot/grub/grub.cfg"
+      alias install-grub-efi="sudo grub-install --target=x86_64-efi --efi-directory=/boot/efi"
+
+      #add new fonts
+      alias update-fc='sudo fc-cache -fv'
+
+      #copy/paste all content of /etc/skel over to home folder - backup of config created - beware
+      #skel alias has been replaced with a script at /usr/local/bin/skel
+
+      #backup contents of /etc/skel to hidden backup folder in home/user
+      alias bupskel='cp -Rf /etc/skel ~/.skel-backup-$(date +%Y.%m.%d-%H.%M.%S)'
+
+      #copy shell configs
+      alias cb='cp /etc/skel/.bashrc ~/.bashrc && echo "Copied."'
+      alias cz='cp /etc/skel/.zshrc ~/.zshrc && exec zsh'
+      alias cf='cp /etc/skel/.config/fish/config.fish ~/.config/fish/config.fish && echo "Copied."'
+
+      #switch between bash and zsh
+      alias tobash="sudo chsh $USER -s /bin/bash && echo 'Now log out.'"
+      alias tozsh="sudo chsh $USER -s /bin/zsh && echo 'Now log out.'"
+      alias tofish="sudo chsh $USER -s /bin/fish && echo 'Now log out.'"
+
+      # quickly kill picom
+      alias kpi='killall picom'
+
+      #hardware info --short
+      alias hw="hwinfo --short"
+
+      #audio check pulseaudio or pipewire
+      alias audio="pactl info | grep 'Server Name'"
+
+
+      #check vulnerabilities microcode
+      alias microcode='grep . /sys/devices/system/cpu/vulnerabilities/*'
+
+              #clear
+        alias clean="clear; seq 1 $(tput cols) | sort -R | sparklines | lolcat"
+
+        #search content with ripgrep
+        alias rg="rg --sort path"
+
+        #get the error messages from journalctl
+        alias jctl="journalctl -p 3 -xb"
+
+              #reading logs with bat
+        alias lcalamares="bat /var/log/Calamares.log"
+        alias lpacman="bat /var/log/pacman.log"
+        alias lxorg="bat /var/log/Xorg.0.log"
+        alias lxorgo="bat /var/log/Xorg.0.log.old"
+
+        #gpg
+        #verify signature for isos
+        alias gpg-check="gpg2 --keyserver-options auto-key-retrieve --verify"
+        alias fix-gpg-check="gpg2 --keyserver-options auto-key-retrieve --verify"
+        #receive the key of a developer
+        alias gpg-retrieve="gpg2 --keyserver-options auto-key-retrieve --receive-keys"
+        alias fix-gpg-retrieve="gpg2 --keyserver-options auto-key-retrieve --receive-keys"
+        alias fix-keyserver="[ -d ~/.gnupg ] || mkdir ~/.gnupg ; cp /etc/pacman.d/gnupg/gpg.conf ~/.gnupg/ ; echo 'done'"
+
+        #fixes
+        alias fix-permissions="sudo chown -R $USER:$USER ~/.config ~/.local"
+
+        #maintenance
+        alias big="expac -H M '%m\t%n' | sort -h | nl"
+        #systeminfo
+        alias probe="sudo -E hw-probe -all -upload"
+        alias sysfailed="systemctl list-units --failed"
+
+        #shutdown or reboot
+        alias ssn="sudo shutdown now"
+        alias sr="sudo reboot"
+        
+        #give the list of all installed desktops - xsessions desktops
+        alias xd="ls /usr/share/xsessions"
+
+      #btrfs aliases
+      alias btrfsfs="sudo btrfs filesystem df /"
+      alias btrfsli="sudo btrfs su li / -t"
+
+      #snapper aliases
+      alias snapcroot="sudo snapper -c root create-config /"
+      alias snapchome="sudo snapper -c home create-config /home"
+      alias snapli="sudo snapper list"
+      alias snapcr="sudo snapper -c root create"
+      alias snapch="sudo snapper -c home create"
+
+      #remove
+      alias rmgitcache="rm -r ~/.cache/git"
+
+      #moving your personal files and folders from /personal to ~
+      alias personal='cp -Rf /personal/* ~'
+
+
+#+end_src
+
+** Replace ls with eza
+for this to work you need eza instaled
+
+Here is wahat *ls -la* would look like
+it is mainly an esthetic choice but i do like it quite a bit
+
+#+ATTR_ORG: :width 1200
+[[/home/sulumar/Pictures/eza.png]]
+
+#+name: ls-aliasses
+#+BEGIN_SRC bash
+# overwrite default ls with eza
+alias ls='eza --icons'
+alias la='eza --icons -a'
+alias ll='eza --icons --long -h -b -T -L 1 --all'
+alias l='eza --icons'
+alias l.="eza -A | egrep '^\.'"
+alias lg='eza --git-repos --git --git-ignore --long --all --icons -h -b -T -L 2' 
+#+END_SRC
+
+** colorize grep by default
+
+#+name: color-grep
+#+BEGIN_SRC bash
+  ## Colorize the grep command output for ease of use (good for log files)##
+  alias grep='grep --color=auto'
+  alias egrep='egrep --color=auto'
+  alias fgrep='fgrep --color=auto'
+  
+#+END_SRC
+
+** Software management aliasses
+Here is a list of aliasses to simplify software management
+I use yay as an aur helper and reflector to rank mirrors
+Also Credit where credit is due i Took a lot of these aliasses from the now discontinued Acolinux and Erik Dubois
+Their website [[https://arcolinux.com][arcolinux.com]] is still a great educational resource to have on hand
+
+#+name: software-management
+#+BEGIN_SRC bash
+
+   # Aliases for software managment
+   # pacman
+   alias pacman="sudo pacman --color auto"
+   alias update="sudo pacman -Syyu"
+
+   alias upall="yay -Syu --noconfirm --color"
+
+   #skip integrity check
+   alias yayskip='yay -S --mflags --skipinteg'
+
+  #get fastest mirrors in your neighborhood
+        alias mirror="sudo reflector -f 30 -l 30 --number 10 --verbose --save /etc/pacman.d/mirrorlist"
+        alias mirrord="sudo reflector --latest 30 --number 10 --sort delay --save /etc/pacman.d/mirrorlist"
+        alias mirrors="sudo reflector --latest 30 --number 10 --sort score --save /etc/pacman.d/mirrorlist"
+        alias mirrora="sudo reflector --latest 30 --number 10 --sort age --save /etc/pacman.d/mirrorlist"
+        #our experimental - best option for the moment
+        alias mirrorx="sudo reflector --age 6 --latest 20  --fastest 20 --threads 5 --sort rate --protocol https --save /etc/pacman.d/mirrorlist"
+        alias mirrorxx="sudo reflector --age 6 --latest 20  --fastest 20 --threads 20 --sort rate --protocol https --save /etc/pacman.d/mirrorlist"
+        alias ram='rate-mirrors --allow-root --disable-comments arch | sudo tee /etc/pacman.d/mirrorlist'
+        alias rams='rate-mirrors --allow-root --disable-comments --protocol https arch  | sudo tee /etc/pacman.d/mirrorlist'
+
+         #Recent Installed Packages
+        alias rip="expac --timefmt='%Y-%m-%d %T' '%l\t%n %v' | sort | tail -200 | nl"
+        alias riplong="expac --timefmt='%Y-%m-%d %T' '%l\t%n %v' | sort | tail -3000 | nl"
+
+        #Cleanup orphaned packages
+        alias cleanup='sudo pacman -Rns $(pacman -Qtdq)'
+
+#+END_SRC
+
+** Shorthands for important config files
+Here i just create a few shorthands to open configuration files with the currently defined default editor
+
+#+name: edit-conf
+#+BEGIN_SRC bash
+  
+  #default editor for important configuration files
+  #know what you do in these files
+        alias edlxdm="sudo $EDITOR /etc/lxdm/lxdm.conf"
+        alias edlightdm="sudo $EDITOR /etc/lightdm/lightdm.conf"
+        alias edpacman="sudo $EDITOR /etc/pacman.conf"
+        alias edgrub="sudo $EDITOR /etc/default/grub"
+        alias edconfgrub="sudo $EDITOR /boot/grub/grub.cfg"
+        alias edmkinitcpio="sudo $EDITOR /etc/mkinitcpio.conf"
+        alias edmirrorlist="sudo $EDITOR /etc/pacman.d/mirrorlist"
+        alias edsddm="sudo $EDITOR /etc/sddm.conf"
+        alias edsddmk="sudo $EDITOR /etc/sddm.conf.d/kde_settings.conf"
+        alias edfstab="sudo $EDITOR /etc/fstab"
+        alias ednsswitch="sudo $EDITOR /etc/nsswitch.conf"
+        alias edsamba="sudo $EDITOR /etc/samba/smb.conf"
+        alias edgpgconf="sudo $EDITOR /etc/pacman.d/gnupg/gpg.conf"
+        alias edhosts="sudo $EDITOR /etc/hosts"
+        alias edhostname="sudo $EDITOR /etc/hostname"
+        alias edbash="$EDITOR ~/.bashrc"
+        alias edzsh="$EDITOR ~/.zshrc"
+        alias edfish="$EDITOR ~/.config/fish/config.fish"
+        alias edneofetch="$EDITOR ~/.config/neofetch/config.conf"
+
+        
+#+END_SRC
+
+** Vmware Helpers
+These shortcuts help manage vmware. it just makes enabeling the services a bit easier
+
+#+name: vmware-aliasses
+#+BEGIN_SRC bash
+      #enabling vmware services
+      alias start-vmware="sudo systemctl enable --now vmtoolsd.service"
+      alias vmware-start="sudo systemctl enable --now vmtoolsd.service"
+      alias sv="sudo systemctl enable --now vmtoolsd.service"
+ 
+#+END_SRC
+** Bash-specific Aliases
+
+#+begin_src bash :tangle ~/.bashrc
+  <<typo-aliasses>>
+  <<ls-aliasses>>
+  <<color-grep>>
+  <<software-management>>
+  <<edit-conf>>
+  <<vmware-aliasses>>
+
+  # Bash-specific convenience
+  alias reload='source ~/.bashrc'
+#+end_src
+
+** Zsh-specific Aliases
+
+#+begin_src zsh :tangle ~/.zshrc
+  <<typo-aliasses>>
+  <<ls-aliasses>>
+  <<color-grep>>
+  <<software-management>>
+  <<edit-conf>>
+  <<vmware-aliasses>>
+
+# Zsh-specific convenience
+alias reload='source ~/.zshrc'
+alias rehash='rehash'  # Zsh: rebuild command hash table
+#+end_src
+
+---
+
+* Functions
+
+Reusable shell functions for common tasks.
+
+** Shared Functions
+
+#+name: shared-functions
+#+begin_src bash
+  # Make and cd into a directory
+  mcd() {
+    mkdir -p "$1" && cd "$1"
+  }
+
+  # Find files matching a pattern
+  fif() {
+    if [ -z "$1" ]; then
+      echo "Usage: fif <pattern>"
+      return 1
+    fi
+    find . -type f -name "*$1*"
+  }
+
+  # Search in files
+  # Usage: search "pattern" [path]
+  search() {
+    local pattern="$1"
+    local path="${2:-.}"
+    grep -r --color=auto "$pattern" "$path"
+  }
+
+  # Show disk usage of current directory
+  duh() {
+    du -sh * | sort -rh
+  }
+
+  ex() {
+  if [ -f $1 ] ; then
+    case $1 in
+      *.tar.bz2)   tar xjf $1   ;;
+      *.tar.gz)    tar xzf $1   ;;
+      *.bz2)       bunzip2 $1   ;;
+      *.rar)       unrar x $1   ;;
+      *.gz)        gunzip $1    ;;
+      *.tar)       tar xf $1    ;;
+      *.tbz2)      tar xjf $1   ;;
+      *.tgz)       tar xzf $1   ;;
+      *.zip)       unzip $1     ;;
+      *.Z)         uncompress $1;;
+      *.7z)        7z x $1      ;;
+      *.deb)       ar x $1      ;;
+      *.tar.xz)    tar xf $1    ;;
+      *.tar.zst)   tar xf $1    ;;
+      *)           echo "'$1' cannot be extracted via ex()" ;;
+    esac
+  else
+    echo "'$1' is not a valid file"
+  fi
+}
+
+# Copy file with a progress bar
+cpp() {
+	set -e
+	strace -q -ewrite cp -- "${1}" "${2}" 2>&1 |
+		awk '{
+	count += $NF
+	if (count % 10 == 0) {
+		percent = count / total_size * 100
+		printf "%3d%% [", percent
+		for (i=0;i<=percent;i++)
+			printf "="
+			printf ">"
+			for (i=percent;i<100;i++)
+				printf " "
+				printf "]\r"
+			}
+		}
+	END { print "" }' total_size="$(stat -c '%s' "${1}")" count=0
+}
+
+# IP address lookup
+alias whatismyip="whatsmyip"
+function whatsmyip ()
+{
+	# Internal IP Lookup.
+	if [ -e /sbin/ip ]; then
+		echo -n "Internal IP: "
+		/sbin/ip addr show wlp4s0 | grep "inet " | awk -F: '{print $1}' | awk '{print $2}'
+	else
+		echo -n "Internal IP: "
+		/sbin/ifconfig wlp4s0 | grep "inet " | awk -F: '{print $1} |' | awk '{print $2}'
+	fi
+
+	# External IP Lookup
+	echo -n "External IP: "
+	curl -s ifconfig.me
+}
+
+#+end_src
+
+** Custom backup function
+This function uses *macup* and *git* to create a backup of my config to my git repo.
+#+name: backup-function
+#+BEGIN_SRC bash
+
+
+# Dotfiles backup function
+# Usage: backup [--dry-run]
+backup() {
+    local dry_run=false
+    local source_dir="$HOME/.config/qtile"
+    local dest_dir="$HOME/.dotfiles/config/.config/qtile"
+    local repo_dir="$HOME/.dotfiles"
+    
+    # Parse arguments
+    while [[ $# -gt 0 ]]; do
+        case $1 in
+            --dry-run)
+                dry_run=true
+                shift
+                ;;
+            -h|--help)
+                echo "Usage: backup [--dry-run]"
+                echo "  --dry-run    Show what would be copied without making changes"
+                echo "  --help       Show this help message"
+                return 0
+                ;;
+            *)
+                echo "Unknown option: $1"
+                echo "Use --help for usage information"
+                return 1
+                ;;
+        esac
+    done
+    
+    # Color codes for output
+    local RED='\033[0;31m'
+    local GREEN='\033[0;32m'
+    local YELLOW='\033[1;33m'
+    local BLUE='\033[0;34m'
+    local NC='\033[0m' # No Color
+    local BOLD='\033[1m'
+    
+    echo -e "${BOLD}${BLUE}=== Dotfiles Backup ===${NC}"
+    echo
+    
+    # Run mackup backup first
+    echo -e "${BLUE}Running mackup backup...${NC}"
+    if [[ "$dry_run" == true ]]; then
+        echo -e "${YELLOW}[DRY RUN] Would run: mackup backup${NC}"
+    else
+        if command -v mackup >/dev/null 2>&1; then
+            mackup backup
+            if [[ $? -ne 0 ]]; then
+                echo -e "${RED}Error: mackup backup failed${NC}"
+                return 1
+            fi
+            echo -e "${GREEN}mackup backup completed${NC}"
+        else
+            echo -e "${RED}Error: mackup command not found${NC}"
+            return 1
+        fi
+    fi
+    echo
+    
+    # Check if source directory exists
+    if [[ ! -d "$source_dir" ]]; then
+        echo -e "${RED}Error: Source directory $source_dir does not exist${NC}"
+        return 1
+    fi
+    
+    # Check if we're in a git repository
+    if [[ ! -d "$repo_dir/.git" ]]; then
+        echo -e "${RED}Error: $repo_dir is not a git repository${NC}"
+        return 1
+    fi
+    
+    # Create destination directory if it doesn't exist
+    if [[ ! -d "$dest_dir" ]]; then
+        if [[ "$dry_run" == true ]]; then
+            echo -e "${YELLOW}[DRY RUN] Would create directory: $dest_dir${NC}"
+        else
+            echo -e "${BLUE}Creating destination directory...${NC}"
+            mkdir -p "$dest_dir"
+            if [[ $? -ne 0 ]]; then
+                echo -e "${RED}Error: Failed to create destination directory${NC}"
+                return 1
+            fi
+        fi
+    fi
+    
+    echo -e "${BLUE}Scanning for files to copy...${NC}"
+    
+    # Find files to copy (excluding .bak files)
+    local files_to_copy=()
+    while IFS= read -r -d '' file; do
+        files_to_copy+=("$file")
+    done < <(find "$source_dir" -type f ! -name "*.bak" -print0)
+    
+    if [[ ${#files_to_copy[@]} -eq 0 ]]; then
+        echo -e "${YELLOW}No files found to copy${NC}"
+        return 0
+    fi
+    
+    echo -e "${GREEN}Found ${#files_to_copy[@]} files to process${NC}"
+    
+    if [[ "$dry_run" == true ]]; then
+        echo -e "${YELLOW}${BOLD}=== DRY RUN MODE ===${NC}"
+        echo "Files that would be copied:"
+        for file in "${files_to_copy[@]}"; do
+            local rel_path="${file#$source_dir/}"
+            echo "  $rel_path"
+        done
+        return 0
+    fi
+    
+    # Progress bar function
+    show_progress() {
+        local current=$1
+        local total=$2
+        local width=50
+        local percentage=$((current * 100 / total))
+        local completed=$((current * width / total))
+        local remaining=$((width - completed))
+        
+        printf "\r${BLUE}Progress: ["
+        printf "%${completed}s" | tr ' ' '='
+        printf "%${remaining}s" | tr ' ' '-'
+        printf "] %d%% (%d/%d)${NC}" "$percentage" "$current" "$total"
+    }
+    
+    # Copy files with progress bar
+    echo -e "${BLUE}Copying files...${NC}"
+    local copied_count=0
+    local total_files=${#files_to_copy[@]}
+    
+    for file in "${files_to_copy[@]}"; do
+        local rel_path="${file#$source_dir/}"
+        local dest_file="$dest_dir/$rel_path"
+        local dest_subdir=$(dirname "$dest_file")
+        
+        # Create subdirectory if needed
+        mkdir -p "$dest_subdir"
+        
+        # Copy file
+        cp "$file" "$dest_file"
+        if [[ $? -ne 0 ]]; then
+            echo -e "\n${RED}Error: Failed to copy $rel_path${NC}"
+            return 1
+        fi
+        
+        ((copied_count++))
+        show_progress $copied_count $total_files
+    done
+    
+    echo # New line after progress bar
+    echo -e "${GREEN}Successfully copied $copied_count files${NC}"
+    
+    # Change to repo directory
+    cd "$repo_dir" || {
+        echo -e "${RED}Error: Cannot change to repository directory${NC}"
+        return 1
+    }
+    
+    # Check for changes
+    echo -e "${BLUE}Checking for git changes...${NC}"
+    if ! git diff --quiet 2>/dev/null || ! git diff --cached --quiet 2>/dev/null; then
+        echo -e "${GREEN}Changes detected${NC}"
+        
+        # Show diff
+        echo -e "${BLUE}${BOLD}=== Changes to be committed ===${NC}"
+        git diff || true
+        echo
+        
+        # Get commit message
+        echo -e "${YELLOW}Enter commit message (format: 'appname: description' or general description):${NC}"
+        read -r commit_message
+        
+        if [[ -z "$commit_message" ]]; then
+            echo -e "${YELLOW}No commit message provided, aborting${NC}"
+            return 1
+        fi
+        
+        # Add changes
+        echo -e "${BLUE}Adding changes to git...${NC}"
+        git add .
+        if [[ $? -ne 0 ]]; then
+            echo -e "${RED}Error: Failed to add changes to git${NC}"
+            return 1
+        fi
+        
+        # Commit changes
+        echo -e "${BLUE}Committing changes...${NC}"
+        git commit -m "$commit_message"
+        if [[ $? -ne 0 ]]; then
+            echo -e "${RED}Error: Failed to commit changes${NC}"
+            return 1
+        fi
+        
+        # Push changes
+        echo -e "${BLUE}Pushing changes...${NC}"
+        git push
+        if [[ $? -ne 0 ]]; then
+            echo -e "${RED}Error: Failed to push changes${NC}"
+            echo -e "${YELLOW}Changes have been committed locally but not pushed${NC}"
+            return 1
+        fi
+        
+        echo -e "${GREEN}${BOLD}✓ Successfully backed up all dotfiles!${NC}"
+        
+    else
+        echo -e "${YELLOW}No changes detected in dotfiles repository${NC}"
+    fi
+    
+    return 0
+}
+
+# Add completion for the dry-run flag
+_backup_completion() {
+    local cur=${COMP_WORDS[COMP_CWORD]}
+    local opts="--dry-run --help"
+    COMPREPLY=($(compgen -W "$opts" -- "$cur"))
+}
+
+complete -F _backup_completion backup
+
+
+#+END_SRC
+
+** Bash-specific Functions
+
+#+begin_src bash :tangle ~/.bashrc
+  <<shared-functions>>
+  <<backup-function>>
+#+end_src
+
+** Zsh-specific Functions
+
+#+begin_src zsh :tangle ~/.zshrc
+  <<shared-functions>>
+  <<backup-function>>
+  
+  # Zsh-specific enhanced completion awareness
+  # (Zsh has better built-in completion, so fewer custom functions needed)
+#+end_src
+
+---
+
+* Git Configuration
+
+Git-related shortcuts and helpers.
+
+** Git Aliases & Helpers
+
+#+name: shared-git
+#+begin_src bash
+  gc(){
+	git commit -m "$1"
+}
+
+ gsc(){
+	git commit -S -m "$1"
+}
+
+
+    # View git status with untracked files
+    gst() {
+      git status
+    }
+
+    # Show commits with author
+    glog() {
+      git log --oneline --author="${1:-.}" -n "${2:-10}"
+    }
+
+    # Quick commit and push
+    gcap() {
+      if [ -z "$1" ]; then
+        echo "Usage: gcap <message>"
+        return 1
+      fi
+      git add -A && git commit -m "$1" && git push
+    }
+
+    # Branches
+    gbr() {
+      git branch -vv
+    }
+
+    grm() {
+      git remote -v
+    }
+
+    
+  # Git aliasses
+  alias gp="git push"
+  alias gaa="git add *"
+  alias gpsom='git push --set-upstream origin main'
+  alias gs='git status'
+
+
+#+end_src
+
+** Bash Git Configuration
+
+#+begin_src bash :tangle ~/.bashrc
+<<shared-git>>
+#+end_src
+
+** Zsh Git Configuration
+
+#+begin_src zsh :tangle ~/.zshrc
+<<shared-git>>
+#+end_src
+
+---
+
+* Development Tools
+
+Configuration for programming languages and development environments.
+
+** Python & Virtual Environments
+
+#+name: python-setup
+#+begin_src bash
+  # Python: prefer python3
+  alias python=python3
+  alias pip=pip3
+
+  # Virtual environment activation helper
+  venv() {
+    if [ -z "$1" ]; then
+      echo "Usage: venv <path>"
+      return 1
+    fi
+    if [ ! -d "$1" ]; then
+      python3 -m venv "$1"
+    fi
+    source "$1/bin/activate"
+  }
+#Modify propt if in python Venv
+if [[ $PIPENV_PS1 ]]; then
+    export PS1="$PIPENV_PS1"
+fi
+
+gpip() {
+	PIP_REQUIRE_VIRTUALENV=false pip "$@"
+}
+
+  #Pipenv aliasses
+  alias prp="pipenv run python $1" # saves typing python every time.
+  alias pi="pipenv install $1" # allows you to just type the package
+  alias pps="pipenv shell" # start a env with just "ps"
+
+
+#+end_src
+
+** Node.js & npm
+
+#+name: node-setup
+#+begin_src bash
+# Node version manager (if using nvm)
+# export NVM_DIR="$HOME/.nvm"
+# [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
+
+# npm aliases
+alias ni='npm install'
+alias nid='npm install --save-dev'
+#+end_src
+
+** Bash Development Setup
+
+#+begin_src bash :tangle ~/.bashrc
+<<python-setup>>
+
+<<node-setup>>
+#+end_src
+
+** Zsh Development Setup
+
+#+begin_src zsh :tangle ~/.zshrc
+<<python-setup>>
+
+<<node-setup>>
+#+end_src
+
+** Personal aliasses
+#+name: personal-aliasses
+#+BEGIN_SRC bash
+# edit shortcuts
+alias editkeys='micro ~/.config/qtile/sxhkd/sxhkdrc'
+
+
+# alias screensetups
+alias dph=". ~/.screenlayout/DualScreenSetupHome.sh"
+alias dpa=". ~/.screenlayout/MonoScreenSetup.sh"
+
+# Add an "alert" alias for long running commands.  Use like so:
+#   sleep 10; alert
+alias alert='notify-send --urgency=low -i "$([ $? = 0 ] && echo terminal || echo error)" "$(history|tail -n1|sed -e '\''s/^\s*[0-9]\+\s*//;s/[;&|]\s*alert$//'\'')"'
+
+
+# Search command line history
+alias h="history | grep "
+
+# Search running processes
+alias p="ps aux | grep "
+alias topcpu="/bin/ps -eo pcpu,pid,user,args | sort -k 1 -r | head -10"
+
+# Search files in the current folder
+alias f="find . | grep "
+
+# qtile logs
+alias qtile-logs="bat ~/.local/share/qtile/qtile.log"
+
+# Emacs
+alias supermacs='emacs'
+alias debugemacs='ps aux | grep -ie emacs | grep -v grep | awk '{print $2}' | xargs kill -SIGUSR2'
+alias temacs='emacsclient -nw'
+alias emacs='emacsclient -c -a ""' # Opens GUI, starts daemon if not running
+
+#Docker setups
+alias bitlbee-build="docker run -d -v ~/bitlbee/config:/var/lib/bitlbee -p 6667:6667 --name bitlbee bitlbee-discord" 
+alias bitlbee="docker start bitlbee"
+#+END_SRC
+
+** Bash personal aliasses
+
+#+begin_src bash :tangle ~/.bashrc
+<<pesonal-aliasses>>
+
+#+end_src
+
+** Zsh Development Setup
+
+#+begin_src zsh :tangle ~/.zshrc
+<<personal-aliasses>>
+#+end_src
+
+
+---
+
+* Prompt Configuration
+
+Shell prompt (PS1) and visual customization.
+
+** Bash Prompt
+
+#+begin_src bash :tangle ~/.bashrc
+# Simple but informative prompt
+# Format: user@host:directory$
+PS1='\u@\h:\W\$ '
+
+# Colored prompt (uncomment for colors)
+# PS1='\[\033[01;32m\]\u@\h\[\033[00m\]:\[\033[01;34m\]\W\[\033[00m\]\$ '
+#+end_src
+
+** Zsh Prompt
+is handeled at the beginning by Oh my zsh
+#+begin_src zsh :tangle ~/.zshrc
+
+# For a more feature-rich prompt, consider:
+# - Using a framework like Oh My Zsh
+# - Installing a theme with git status indicators
+# Uncomment and customize as needed:
+# PROMPT='%F{green}%n%f@%F{blue}%m%f:%F{cyan}%~%f%% '
+#+end_src
+
+---
+
+* Completions & Enhancements
+** Shared eyecandy
+#+name: eyecandy
+#+BEGIN_SRC bash
+
+if [ -n "$INSIDE_EMACS" ]; then
+	:		
+else
+	macchina
+fi
+
+
+#+END_SRC
+
+** Bash personal aliasses
+
+#+begin_src bash :tangle ~/.bashrc
+<<eyecandy>>
+
+#+end_src
+
+** Zsh eyecandy Setup
+
+#+begin_src zsh :tangle ~/.zshrc
+<<eyecandy>>
+#+end_src
+
+
+Advanced shell features (bash completion, zsh completion).
+
+** Bash Completion
+
+#+begin_src bash :tangle ~/.bashrc
+# Load bash completion if available
+if [ -f /usr/share/bash-completion/bash_completion ]; then
+  . /usr/share/bash-completion/bash_completion
+elif [ -f /etc/bash_completion ]; then
+  . /etc/bash_completion
+fi
+#+end_src
+
+** Zsh Completion
+
+#+begin_src zsh :tangle ~/.zshrc
+# Initialize zsh completion system
+autoload -Uz compinit && compinit
+
+# Use menu selection for completions
+zstyle ':completion:*' menu select
+zstyle ':completion:*' matcher-list 'm:{a-z}={A-Z}'  # Case-insensitive
+zstyle ':completion:*' list-colors "${(s.:.)LS_COLORS}"  # Colorize completions
+#+end_src
+
+*** Loading zoxide
+#+begin_src zsh :tangle ~/.zshrc
+eval "$(zoxide init zsh)"
+
+#+end_src
+ 
+*** Adding vterm compatibility
+
+#+begin_src zsh :tangle ~/.zshrc
+  autoload -U add-zsh-hook
+  add-zsh-hook -Uz chpwd (){ print -Pn "\e]2;%m:%2~\a" }
+
+  if [[ "$INSIDE_EMACS" = 'vterm' ]]; then 
+     source $HOME/.config/emacs/vtermrc
+  fi
+
+#+end_src
+
+
+
+---
+
+* Finalization
+
+Closing setup and verification.
+
+** Bash Finalization
+
+#+begin_src bash :tangle ~/.bashrc
+# Verify shell startup
+# echo "✓ .bashrc loaded"
+#+end_src
+
+** Zsh Finalization
+
+#+begin_src zsh :tangle ~/.zshrc
+# Verify shell startup
+# echo "✓ .zshrc loaded"
+#+end_src
+
+---
+
+* Reference & Maintenance
+
+** Quick Reference
+
+| Command | Effect |
+|---------+--------|
+| ~C-c C-v t~ | Tangle current org file (regenerate .bashrc & .zshrc) |
+| ~M-x org-babel-tangle-file~ | Tangle with file selection |
+| ~source ~/.bashrc~ | Reload bash configuration |
+| ~source ~/.zshrc~ | Reload zsh configuration |
+
+** Troubleshooting
+
+- **Changes not taking effect**: Run =C-c C-v t= to retangle, then reload your shell (~source ~/.bashrc~ or ~source ~/.zshrc~)
+- **Syntax errors after tangle**: Check the tangled output files (.bashrc/.zshrc) for the line numbers reported
+- **Org file won't tangle**: Ensure =org-babel-tangle= is available (it's built-in to modern Org)
+- **Losing manual edits**: Never edit .bashrc/.zshrc directly; always edit the .org file and retangle
+
+** Integration with Git
+
+Add to your dotfiles repo:
+
+#+begin_example
+# .gitignore
+.bashrc
+.zshrc
+*~
+#+end_example
+
+Then track only the org file:
+
+#+begin_example
+git add shellrc.org
+git commit -m "Update shell configuration"
+#+end_example
+
+---
+
+* Template Customization Guide
+
+To customize this template for your setup:
+
+1. **Add your own aliases**: Edit the "Aliases" section
+2. **Add your own functions**: Expand the "Functions" section
+3. **Modify paths**: Update the PATH exports in "Environment Variables"
+4. **Add tool-specific setup**: Create new sections for tools you use (Rust, Go, etc.)
+5. **Customize prompt**: Modify the "Prompt Configuration" section
+6. **Enable features gradually**: Start simple, add complexity as needed
+
+Each section is self-contained with noweb references, so it's easy to add or remove functionality.
