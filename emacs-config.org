@@ -1,0 +1,1653 @@
+#+TITLE: MY GNU Emacs Config
+#+AUTHOR: J. Trips
+#+DESCRIPTION: my  personal Emacs config.
+#+STARTUP: show2levels
+#+OPTIONS: toc:2
+#+PROPERTY: header-args:emacs-lisp
+* Basics
+** DISABLED start server
+#+BEGIN_Example
+  (require 'server)
+  (unless (server-running-p)
+    (server-start))
+#+END_Example
+** set custom file
+This is the location emacs writes customisations to, such as handling of dir-locals
+
+  (setq custom-file "~/.config/emacs/emacs-custom.el")
+  (load custom-file)
+
+ i put it in ~early-init.el~ so it loads first
+
+** disable startup page
+
+#+BEGIN_SRC emacs-lisp
+  (setq inhibit-startup-message t)
+#+END_SRC
+
+** disable scroll bar
+
+#+BEGIN_SRC emacs-lisp
+  (scroll-bar-mode -1)
+#+END_SRC
+
+** disable toolbar, menubar and tooltips
+
+#+BEGIN_SRC emacs-lisp
+  (tool-bar-mode -1)
+  (menu-bar-mode -1)
+  (tooltip-mode -1)
+#+END_SRC
+** Make ESC quit prompts
+#+BEGIN_SRC emacs-lisp
+(global-set-key (kbd "<escape>") 'keyboard-escape-quit)
+#+END_SRC
+
+** Set User directory
+#+begin_src emacs-lisp
+(setq user-emacs-directory "~/.config/emacs/")
+#+end_src
+* Movement between windows
+#+begin_src emacs-lisp
+(when (fboundp 'windmove-default-keybindings)
+  (windmove-default-keybindings))
+#+end_src
+
+windmove makes it possible to move between windows with shift arrow
+* Custom Packages
+
+Emacs has its own package repository called Elpa
+There is also a community package repo called MELPA, avaidable at melpa.org
+
+** Install package functionality
+#+BEGIN_SRC emacs-lisp
+
+  (require 'package)
+
+  (setq package-archives '(("melpa" . "https://melpa.org/packages/")
+			   ("org" . "https://orgmode.org/elpa/")
+			   ("elpa" . "https://elpa.gnu.org/packages/")))
+
+  (package-initialize)
+  (unless package-archive-contents
+   (package-refresh-contents))
+
+  ;; Initialize use-package on non-Linux platforms
+  (unless (package-installed-p 'use-package)
+     (package-install 'use-package))
+
+  (require 'use-package)
+  (setq use-package-always-ensure t)
+#+END_SRC
+
+** Install completition
+
+Install ivy for better completition
+Make sure swiper gets run
+
+swiper lets you search through your file using the minibuffer ( The section below your modeline)
+ivy gives you better completition for filenames
+
+counsel gives you additional info on commands. it is a replacement for the builtin Meta-x functionality
+
+
+#+BEGIN_SRC emacs-lisp
+    (use-package swiper
+      :ensure t)
+    (use-package counsel
+    :ensure t
+    :bind (("M-x" . counsel-M-x)
+           ("C-x b" . counsel-ibuffer)
+           ("C-x C-f" . counsel-find-file)
+           :map minibuffer-local-map
+           ("C-r" . 'counsel-minibuffer-history)))
+
+  ;make sure C-s is free
+      (use-package ivy
+    :diminish
+    :bind (("C-s" . swiper)
+           :map ivy-minibuffer-map
+           ("TAB" . ivy-alt-done)
+           ("C-l" . ivy-alt-done)
+           ("C-j" . ivy-next-line)
+           ("C-k" . ivy-previous-line)
+           :map ivy-switch-buffer-map
+           ("C-k" . ivy-previous-line)
+           ("C-l" . ivy-done)
+           ("C-d" . ivy-switch-buffer-kill)
+           :map ivy-reverse-i-search-map
+           ("C-k" . ivy-previous-line)
+           ("C-d" . ivy-reverse-i-search-kill))
+    :config
+    (ivy-mode 1))
+
+#+END_SRC
+** add more descriptive help
+
+#+BEGIN_src emacs-lisp
+  (use-package helpful
+  :custom
+  (counsel-describe-function-function #'helpful-callable)
+  (counsel-describe-variable-function #'helpful-variable)
+  :bind
+  ([remap describe-function] . counsel-describe-function)
+  ([remap describe-command] . helpful-command)
+  ([remap describe-variable] . counsel-describe-variable)
+  ([remap describe-key] . helpful-key))
+#+END_SRC
+
+** better defaults
+#+begin_src emacs-lisp
+  (use-package better-defaults)
+#+end_src
+** add doom modebar and theme
+doom modebar requires compat in version 29.1.4.5 but compat on elpa has been updated to version 30.0.0.0. We need to manually download and install the older version using the following command
+'curl https://elpa.gnu.org/packages/compat-29.1.4.5.tar.lz | tar --lzip -xC ~/.config/emacs/elpa'
+ 
+
+#+BEGIN_SRC emacs-lisp
+(use-package nerd-icons
+  :ensure t
+  :config
+  ;; The Nerd Font you want to use in GUI
+  ;; "Symbols Nerd Font Mono" is the default and is recommended
+  ;; but you can use any other Nerd Font if you want
+  (when (display-graphic-p)
+    (require 'nerd-icons)))
+  (use-package doom-modeline
+    :ensure t
+    :init (doom-modeline-mode 1)
+    :custom ((doom-modeline-height 15)))
+  (use-package doom-themes
+    :init (load-theme 'doom-solarized-dark t)
+  (doom-themes-org-config))
+#+END_SRC
+
+the first time nerd-icons is loaded, you need to manually run 'M-x nerd-icons-install-fonts' 
+
+* UI Improvements
+
+** add line numbers
+
+#+begin_src emacs-lisp
+  (column-number-mode)
+  (global-display-line-numbers-mode t)
+
+  ;; Disable line numbers for some modes
+  (dolist(mode '(org-mode-hook
+                 term-mode-hook
+                 eshell-mode-hook))
+    (add-hook mode(lambda()(display-line-numbers-mode 0))))
+#+end_src
+
+** add rainbow delimiters to code
+
+#+begin_src emacs-lisp
+   (use-package rainbow-delimiters
+     :hook (prog-mode . rainbow-delimiters-mode)) 
+#+end_src
+
+** set fonts
+
+#+BEGIN_SRC emacs-lisp
+  (when (display-graphic-p)
+    (set-face-attribute 'default nil :font "FantasqueSansM Nerd Font" :height 135)
+    (set-face-attribute 'fixed-pitch nil :font "SauceCodePro Nerd Font" :height 135)
+
+  ;; Set the variable pitch face
+    (set-face-attribute 'variable-pitch nil :font "FantasqueSansM Nerd Font" :height 135 :weight 'regular)
+
+    (set-face-attribute 'org-block nil :font "SauceCodePro Nerd Font" :height 135)
+    (set-face-attribute 'org-code nil :font "SauceCodePro Nerd Font"))
+#+END_SRC
+* Adding Help functions
+** add previws for keybindings with which-key
+
+which-key provides a little popup to inform you of avaidable keybindings
+
+#+begin_src emacs-lisp
+  (use-package which-key
+    :init (which-key-mode)
+    :diminish which-key-mode
+    :config
+    (setq which-key-idle-delay 0.3))
+#+end_src
+
+** additional information for commands
+
+ivy-rich supplements ivy with additional info
+
+#+begin_src emacs-lisp
+  (use-package ivy-rich
+    :init
+    (ivy-rich-mode 1))
+#+end_src
+ 
+* Custom Keybindings
+ standar way to define global keybindings examples
+  (global-set-key (kbd "C-M-b") 'counsel-switch-buffer)
+  (global-set-key (kbd "C-M-x") 'kill-current-buffer)
+  (global-set-key (kbd "C-M-!") 'kill-buffer-and-window) 
+
+but the general package makes setting keys a lot easier
+
+** General
+
+We create a definer key, i tis case Crtl+Space that acts as a prefix
+Under that definer we can add toogels and keybindings
+
+#+begin_src emacs-lisp
+    (use-package general
+      :config
+      (general-auto-unbind-keys)
+      (general-create-definer jt/leader-keys
+      :map 'override
+      :prefix "C-SPC")
+
+      (general-define-key
+       :prefix "M-SPC"
+       :map 'override
+
+       "t" '(vterm-other-window :which-key "toggle vterm")
+       "c" '(irc :which-key "IRC")
+       )
+
+      (jt/leader-keys
+        "b"  '(:ignore t :which-key "buffers")
+        "bB" '(switch-to-buffer :which-key "select buffer globally")
+        "bb" '(persp-switch-to-buffer* :which-key "switch to buffer in perspective")
+        "bx" '(kill-current-buffer :which-key "Kill this buffer")
+        
+        "c" '(org-roam-capture :which-key "New Node")
+
+        "f"  '(:ignore t :which-key "File")
+        "fi" '(insert-file :which-key "Insert")
+        
+         "w"  '(:ignore t :which-key "Windows")
+         "wv" '(split-window-vertically :which-key "Vertical Split")
+         "wh" '(split-window-horizontally :which-key "Horizontal Split")
+         "wx" '(kill-buffer-and-window :which-key "kill buffer and window")
+         "w!" '(delete-window :which-key "close window")
+
+         "p"  '(:ignore t :which-key "prog")
+         ;"pr" '(projectile-run-project-with-tracking :which-key "run project")
+         "pr" '(projectile-run-project :which-key "run project")
+         "pt" '(projectile-test-project :which-key "test project")
+         "pp" '(projectile-switch-project :which-key "switch project")
+
+         "k" '(:ignore t :which-key "PKM")
+         "kl" '(org-roam-buffer-toggle :which-key "toggle Roam")
+         "ki" '(org-roam-node-insert :which-key "insert node")
+         "kf" '(org-roam-node-find :which-key "Find Node")
+         "k<" '(org-roam-add-tag :which-key "add roam tag")
+
+         "o"  '(:ignore t :which-key "org")
+         "oa" '(org-agenda :which-key "open agenda")
+         "ow" '(org-agenda-list :which-key "current week")
+         "oc" '(org-capture :which-key "capture")
+         "ol" '(org-store-link :which-key "store-link")
+         "op" '(org-web-tools-read-url-as-org :which-key "save page")
+
+             )
+
+    (jt/leader-keys
+      :keymaps 'org-agenda-mode-map
+
+         "o"  '(:ignore t :which-key "org")
+
+         "od" '(org-agenda-deadline :which-key "set deadline")
+         "os" '(org-agenda-schedule :which-key "schedule task")
+         "ot" '(org-agenda-todo :which-key "toggle todo")
+      )
+
+    (use-package hydra)
+    (defhydra hydra-spell (:timeout 20)
+    "spell check"
+    ("l" flyspell-buffer "check")
+    ("c" flyspell-correct-at-point "Correct word")
+    ("j" flyspell-goto-next-error "Next error")
+    ("f" nil "finished" :exit t))
+
+    (jt/leader-keys
+      :keymaps 'python-mode-map
+        "v" '(:ignore t :which-key "venv")
+        "vc" '(pyvenv-create :which-key "create")
+        "va" '(pyvenv-activate :which-key "activate")
+        "vx" '(pyvenv-deactivate :which-key "deactivate")
+        
+        "s" '(hydra-spell/body :which-key "Spelling")
+        "p" '(:ignore t :which-key "prog")
+        "pb" '(blacken-buffer :which-key "run black")
+        "pi" '(pyimpsort-buffer :which-key "sort imports")
+            )
+    (jt/leader-keys
+      :keymaps 'prog-mode-map
+        "p" '(:ignore t :which-key "prog")
+        "ps" '(devdocs-search :which-key "search doc")
+        )
+        
+  (jt/leader-keys
+      :keymaps 'org-mode-map
+      "r" '(save-buffer-as-org-with-timestamp :which-key "save for later")
+      "o"  '(:ignore t :which-key "org")
+      "od" '(org-deadline :which-key "set deadline")
+      "os" '(org-schedule :which-key "schedule task")
+      "ot" '(org-todo :which-key "toggle todo")
+      "o<" '(org-set-tags-command :which-key "add tag")
+      "oe" '(org-set-effort :which-key "set effort")
+      "f" '(:ignore t :which-key "File")
+      "ft" '(org-babel-tangle :which-key "Tangle this File")
+      "fx" '(org-export-dispatch :which-key "Export file")
+      "or" '(org-refile :which-key "Archive entry")
+      "i" '(org-toggle-inline-images :which-key "toggle-images")
+      
+      "s" '(hydra-spell/body :which-key "Spelling")
+           )
+  
+  (defhydra hydra-text-scale (:timeout 4)
+    "scale text"
+    ("j" text-scale-increase "in")
+    ("k" text-scale-decrease "out")
+    ("f" nil "finished" :exit t))
+
+  (jt/leader-keys
+    "V" '(:ignore t :which-key "view")
+    "Vs" '(hydra-text-scale/body :which-key "scale text"))) 
+  
+#+end_src
+
+this will set up general to use crtl+space as the leader key for custom bindings
+hydra is used for transient(stick to screen) keybindings
+** Updated General keybindings
+#+begin_src emacs-lisp
+    ;; REPLACE your tree keybindings with these:
+    (jt/leader-keys
+      "t"  '(:ignore t :which-key "tree/workspace")
+      "tt" '(dired-sidebar-toggle-sidebar :which-key "toggle sidebar")
+      "td" '(dired-sidebar-find-file :which-key "find in sidebar")
+      
+      "w"  '(:ignore t :which-key "Windows/Workspaces")
+      "wv" '(split-window-vertically :which-key "Vertical Split")
+      "wh" '(split-window-horizontally :which-key "Horizontal Split")
+      "wx" '(kill-buffer-and-window :which-key "kill buffer and window")
+      "w!" '(delete-window :which-key "close window")
+
+      ;; Add perspective workspace keybindings
+      "wp" '(persp-switch :which-key "switch perspective")
+      "wn" '(persp-next :which-key "next perspective")
+      "wr" '(persp-rename :which-key "rename perspective")
+      "wk" '(persp-kill :which-key "kill perspective")
+      "ww" '(persp-state-load persp-state-default-file :which-key "load default perps")
+      )
+#+end_src
+** evil mode
+
+Evil mode is a set of integrations to emulate vim style key bindings in emacs
+vim style keybindings are designed to keep the user from reaching yheir hand too far out from the keyboards home row
+
+#+begin_src emacs-lisp
+           (use-package evil
+        :init
+        (setq evil-want-integration t)
+        (setq evil-want-keybinding nil)
+        (setq evil-want-C-u-scroll t)
+        (setq evil-want-C-i-jump nil)
+        :config
+        (evil-mode 1)
+        (define-key evil-insert-state-map (kbd "C-g") 'evil-normal-state)
+        (define-key evil-insert-state-map (kbd "C-h") 'evil-delete-backward-char-and-join)
+
+        ;; Use visual line motions even outside of visual-line-mode buffers
+        (evil-global-set-key 'motion "j" 'evil-next-visual-line)
+        (evil-global-set-key 'motion "k" 'evil-previous-visual-line)
+
+        (evil-set-initial-state 'messages-buffer-mode 'normal)
+        (evil-set-initial-state 'dashboard-mode 'normal))
+
+      (use-package evil-collection
+        :after evil
+        :config
+        (evil-collection-init))
+      (use-package evil-mc
+        :after evil
+        :config
+        (evil-mc-mode 1))
+      (use-package evil-tutor)
+ #+end_src 
+ 
+* Spelling correction
+To get correction for spelling you need an external programm. I suggest aspell. Aspell needs a dictionary for every language you want to support.
+#+begin_src emacs-lisp
+    (use-package flyspell
+    :defer t
+    :hook (org-mode . flyspell-mode))
+    (use-package flyspell-correct
+      :after flyspell
+      :bind (:map flyspell-mode-map ("C-;" . flyspell-correct-wrapper)))
+    (use-package flyspell-correct-ivy
+      :after flyspell-correct)
+    ;; oder alternativ:
+    (setq flyspell-correct-interface #'flyspell-correct-ivy)
+#+end_src
+
+#+begin_src emacs-lisp
+  (setq ispell-program-name "aspell")
+  (setq ispell-dictionary "en")  ;; für English
+  (add-hook 'text-mode-hook 'flyspell-mode)
+  (use-package guess-language
+  :ensure t
+  :init
+  (setq guess-language-languages '(en de fr))
+  (setq guess-language-min-paragraph-length 35)
+  :hook ((text-mode . guess-language-mode)
+         (org-mode . guess-language-mode)
+         (prog-mode . guess-language-mode)))
+  (setq guess-language-langcodes nil) ;; oder eine tatsächliche Liste:
+  (setq guess-language-langcodes '((en . "en") (de . "de") (fr . "fr")))
+#+end_src
+
+Integrating ispell with ivy
+* Keeping Folders clean
+In order to not litter our filesystem with backup files all over the place, we will teach emacs to put those in a central space
+
+#+begin_src emacs-lisp
+(setq backup-directory-alist
+      `((".*" . ,(expand-file-name "~/.config/emacs/tmp/backups/"))))
+#+end_src
+* Project Management
+
+** Projectile
+
+Projectile is able to recognize if folders have project specific files attacehd to it ( like a .git folder) and subsequently highlight specific functionality
+Projectile has a couple of implicit commands that can be accessed in a project, like testing or running the project
+#+begin_src emacs-lisp
+   (use-package projectile
+    :diminish projectile-mode
+    :config (projectile-mode)
+    :custom ((projectile-completion-system 'ivy))
+    :bind-keymap
+    ("C-c p" . projectile-command-map)
+    :init
+    ;; NOTE: Set this to the folder where you keep your Git repos!
+    (when (file-directory-p "~/Documents/Code")
+      (setq projectile-project-search-path '("~/Documents/Code")))
+    (setq projectile-switch-project-action #'projectile-dired))
+
+  (use-package counsel-projectile
+    :config (counsel-projectile-mode))
+#+end_src
+
+#+BEGIN_Quote
+
+;; Projectile Server Mode Line Indicator
+;; Add this to your Emacs configuration after your existing projectile and doom-modeline setup
+
+(defvar projectile-server-process nil
+  "Holds the current projectile server process.")
+
+(defvar projectile-server-check-timer nil
+  "Timer for checking server status.")
+
+(defun projectile-server-running-p ()
+  "Check if projectile server is currently running."
+  (and projectile-server-process
+       (process-live-p projectile-server-process)))
+
+(defun projectile-server-get-process-info ()
+  "Get information about the running server process."
+  (when (projectile-server-running-p)
+    (let* ((cmd-line (process-command projectile-server-process))
+           (port (or (projectile-server-extract-port cmd-line) "8000")))
+      `(:port ,port :command ,(mapconcat 'identity cmd-line " ")))))
+
+(defun projectile-server-extract-port (cmd-line)
+  "Extract port number from Django runserver command line."
+  (let ((cmd-string (mapconcat 'identity cmd-line " ")))
+    (when (string-match "runserver.*?\\([0-9]+\\)" cmd-string)
+      (match-string 1 cmd-string))))
+
+(defun projectile-server-stop ()
+  "Stop the current projectile server."
+  (interactive)
+  (when (projectile-server-running-p)
+    (interrupt-process projectile-server-process)
+    (message "Stopping Django development server...")
+    (setq projectile-server-process nil)))
+
+(defun projectile-server-click-handler (event)
+  "Handle clicks on the server indicator."
+  (interactive "e")
+  (if (projectile-server-running-p)
+      (when (y-or-n-p "Stop Django development server? ")
+        (projectile-server-stop))
+    (message "No server currently running")))
+
+;; Override projectile-run-project to track the process
+(defun projectile-run-project-with-tracking (&optional prompt)
+  "Run project and track the server process."
+  (interactive "P")
+  (let ((default-directory (projectile-acquire-root)))
+    (setq projectile-server-process
+          (projectile--run-project-cmd
+           (projectile-run-command (projectile-compilation-dir))
+           prompt
+           :show-prompt prompt
+           :prompt-prefix (projectile--mode-line-format "Run: ")
+           :buffer-name (projectile--get-project-buffers-name "run")
+           :cmd-map (make-sparse-keymap)))
+    ;; Start monitoring the process
+    (when (projectile-server-running-p)
+      (message "Django development server started")
+      ;; Set up process sentinel to clean up when process dies
+      (set-process-sentinel projectile-server-process
+                          (lambda (proc event)
+                            (when (memq (process-status proc) '(exit signal))
+                              (setq projectile-server-process nil)
+                              (message "Django development server stopped")))))))
+
+;; Replace the original projectile-run-project
+(advice-add 'projectile-run-project :override #'projectile-run-project-with-tracking)
+
+;; Custom doom-modeline segment for server status
+(doom-modeline-def-segment projectile-server
+  "Display server status indicator."
+  (when (and (doom-modeline--active)
+             (projectile-server-running-p))
+    (let* ((info (projectile-server-get-process-info))
+           (port (plist-get info :port))
+           (face (if (doom-modeline--active) 'doom-modeline-info 'mode-line-inactive)))
+      (concat
+       (doom-modeline-spc)
+       (propertize
+        (nerd-icons-mdicon "nf-md-server" :face face)
+        'face face
+        'mouse-face 'doom-modeline-highlight
+        'help-echo (format "Django server running on port %s\nClick to stop server\nCommand: %s"
+                          port (plist-get info :command))
+        'local-map (let ((map (make-sparse-keymap)))
+                    (define-key map [mode-line mouse-1] 'projectile-server-click-handler)
+                    map))
+       (doom-modeline-spc)))))
+
+;; Add the segment to doom-modeline
+(doom-modeline-def-modeline 'main-with-server
+  '(bar workspace-name window-number modals matches follow buffer-info remote-host buffer-position word-count parrot selection-info)
+  '(compilation objed-state misc-info persp-name battery grip irc mu4e gnus github debug repl lsp minor-modes input-method indent-info buffer-encoding major-mode process vcs projectile-server checker))
+
+;; Activate the custom modeline
+(doom-modeline-set-modeline 'main-with-server 'default)
+
+;; Optional: Add keybinding to manually check/toggle server
+(jt/leader-keys
+ "ps" '(projectile-server-stop :which-key "stop server")
+ "p?" '((lambda () (interactive) 
+          (if (projectile-server-running-p)
+              (let ((info (projectile-server-get-process-info)))
+                (message "Server running on port %s: %s" 
+                        (plist-get info :port) 
+                        (plist-get info :command)))
+            (message "No server currently running")))
+        :which-key "server status"))
+
+(message "Projectile server mode line indicator loaded!"))
+
+#+END_Quote
+
+
+;; Projectile Server Mode Line Indicator - FIXED VERSION
+;; Replace the problematic code in your config with this:
+
+(defvar projectile-server-process nil
+  "Holds the current projectile server process.")
+
+(defvar projectile-server-check-timer nil
+  "Timer for checking server status.")
+
+(defun projectile-server-running-p ()
+  "Check if projectile server is currently running."
+  (and projectile-server-process
+       (process-live-p projectile-server-process)))
+
+(defun projectile-server-get-process-info ()
+  "Get information about the running server process."
+  (when (projectile-server-running-p)
+    (let* ((cmd-line (process-command projectile-server-process))
+           (port (or (projectile-server-extract-port cmd-line) "8000")))
+      `(:port ,port :command ,(mapconcat 'identity cmd-line " ")))))
+
+(defun projectile-server-extract-port (cmd-line)
+  "Extract port number from Django runserver command line."
+  (let ((cmd-string (mapconcat 'identity cmd-line " ")))
+    (when (string-match "runserver.*?\\([0-9]+\\)" cmd-string)
+      (match-string 1 cmd-string))))
+
+(defun projectile-server-stop ()
+  "Stop the current projectile server."
+  (interactive)
+  (when (projectile-server-running-p)
+    (interrupt-process projectile-server-process)
+    (message "Stopping Django development server...")
+    (setq projectile-server-process nil)))
+
+(defun projectile-server-click-handler (event)
+  "Handle clicks on the server indicator."
+  (interactive "e")
+  (if (projectile-server-running-p)
+      (when (y-or-n-p "Stop Django development server? ")
+        (projectile-server-stop))
+    (message "No server currently running")))
+
+;; FIXED: Properly define the interactive function
+(defun projectile-run-project-with-tracking (&optional prompt)
+  "Run project and track the server process."
+  (interactive "P")
+  (let ((default-directory (projectile-acquire-root)))
+    ;; First, run the original projectile-run-project
+    (let ((compilation-buffer (projectile-run-project prompt)))
+      ;; Then track the process if compilation succeeded
+      (when compilation-buffer
+        (with-current-buffer compilation-buffer
+          (when (get-buffer-process (current-buffer))
+            (setq projectile-server-process (get-buffer-process (current-buffer)))
+            (when (projectile-server-running-p)
+              (message "Django development server started")
+              ;; Set up process sentinel to clean up when process dies
+              (set-process-sentinel projectile-server-process
+                                  (lambda (proc event)
+                                    (when (memq (process-status proc) '(exit signal))
+                                      (setq projectile-server-process nil)
+                                      (message "Django development server stopped")))))))))))
+
+;; REMOVE the problematic advice - don't override the original function
+;; (advice-add 'projectile-run-project :override #'projectile-run-project-with-tracking)
+
+;; Custom doom-modeline segment for server status
+(doom-modeline-def-segment projectile-server
+  "Display server status indicator."
+  (when (and (doom-modeline--active)
+             (projectile-server-running-p))
+    (let* ((info (projectile-server-get-process-info))
+           (port (plist-get info :port))
+           (face (if (doom-modeline--active) 'doom-modeline-info 'mode-line-inactive)))
+      (concat
+       (doom-modeline-spc)
+       (propertize
+        (nerd-icons-mdicon "nf-md-server" :face face)
+        'face face
+        'mouse-face 'doom-modeline-highlight
+        'help-echo (format "Django server running on port %s\nClick to stop server\nCommand: %s"
+                          port (plist-get info :command))
+        'local-map (let ((map (make-sparse-keymap)))
+                    (define-key map [mode-line mouse-1] 'projectile-server-click-handler)
+                    map))
+       (doom-modeline-spc)))))
+
+;; Add the segment to doom-modeline
+(doom-modeline-def-modeline 'main-with-server
+  '(bar workspace-name window-number modals matches follow buffer-info remote-host buffer-position word-count parrot selection-info)
+  '(compilation objed-state misc-info persp-name battery grip irc mu4e gnus github debug repl lsp minor-modes input-method indent-info buffer-encoding major-mode process vcs projectile-server checker))
+
+;; Activate the custom modeline
+(doom-modeline-set-modeline 'main-with-server 'default)
+
+;; Update your keybindings to use the new function
+(jt/leader-keys
+  "pr" '(projectile-run-project-with-tracking :which-key "run project with tracking")
+  "ps" '(projectile-server-stop :which-key "stop server")
+  "p?" '((lambda () (interactive) 
+           (if (projectile-server-running-p)
+               (let ((info (projectile-server-get-process-info)))
+                 (message "Server running on port %s: %s" 
+                         (plist-get info :port) 
+                         (plist-get info :command)))
+             (message "No server currently running")))
+         :which-key "server status"))
+
+(message "Fixed projectile server mode line indicator loaded!")
+
+
+** dir locals
+Dir locals are a set of custom variables applied to the directory they are stored in.
+you con use this file to set the default values for thinggs like 'projectile-run-test-cmd' or autoindent or basically anything
+the documentation can be found here
+
+https://www.gnu.org/software/emacs/manual/html_node/emacs/Directory-Variables.html
+** Perspective for workspace management
+#+begin_src emacs-lisp
+    (use-package perspective
+      :bind (("C-x C-b" . persp-list-buffers)         ; or use a nicer switcher, see below
+             ("C-x b" . persp-switch-to-buffer*)
+             ("C-x k" . persp-kill-buffer*))
+      :custom
+      (persp-mode-prefix-key (kbd "C-c M-p"))  ; pick your own prefix key here
+      (persp-state-default-file (expand-file-name "persp-session.el" user-emacs-directory))
+      :init
+      (persp-mode)
+      :config
+      (add-hook 'kill-emacs-hook #'persp-state-save))
+#+end_src              
+** Dired Sidebar for file navigation
+#+begin_src emacs-lisp
+      (use-package dired-sidebar
+      :bind (("C-x C-n" . dired-sidebar-toggle-sidebar))
+      :ensure t
+      :commands (dired-sidebar-toggle-sidebar)
+      :init
+      (add-hook 'dired-sidebar-mode-hook
+                (lambda ()
+                  (unless (file-remote-p default-directory)
+                    (auto-revert-mode))))
+      (setq dired-sidebar-should-follow-file t)
+      :config
+      (push 'toggle-window-split dired-sidebar-toggle-hidden-commands)
+      (push 'rotate-windows dired-sidebar-toggle-hidden-commands)
+
+      (setq dired-sidebar-subtree-line-prefix "__")
+      (setq dired-sidebar-theme 'nerd)  ; Changed from 'vscode to 'nerd
+      (setq dired-sidebar-use-term-integration t)
+      (setq dired-sidebar-use-custom-font t))
+      ;; Optional: Enhanced dired with icons if you want visual appeal
+      (use-package dired-subtree
+        :ensure t
+        :after dired
+        :config
+        (bind-key "<tab>" #'dired-subtree-toggle dired-mode-map)
+        (bind-key "<backtab>" #'dired-subtree-cycle dired-mode-map))
+
+      ;; Use nerd-icons in dired (since you already have nerd-icons)
+      (use-package nerd-icons-dired
+      :ensure t
+      :hook (dired-mode . nerd-icons-dired-mode)
+      :config
+      ;; Refresh icons after theme changes
+      (add-hook 'after-init-hook #'nerd-icons-dired-mode))
+#+end_src
+
+** Enhanced Projectile integration
+#+begin_src emacs-lisp
+;; UPDATE your projectile configuration:
+(use-package projectile
+  :diminish projectile-mode
+  :config (projectile-mode)
+  :custom ((projectile-completion-system 'ivy))
+  :bind-keymap
+  ("C-c p" . projectile-command-map)
+  :init
+  ;; NOTE: Set this to the folder where you keep your Git repos!
+  (when (file-directory-p "~/Documents/Code")
+    (setq projectile-project-search-path '("~/Documents/Code")))
+  (setq projectile-switch-project-action #'projectile-dired)
+  
+  ;; Auto-create perspective for new projects
+  :hook (projectile-after-switch-project-hook . 
+         (lambda ()
+           (persp-switch (projectile-project-name))
+           (dired-sidebar-show-sidebar))))
+
+(use-package counsel-projectile
+  :config (counsel-projectile-mode))
+#+end_src
+
+** Optional: Perspective with project integration
+#+begin_src emacs-lisp
+;; This creates a perspective automatically when switching projects
+(defun my/projectile-persp-switch-project (project-to-switch)
+  "Switch to a project or create a new perspective for it."
+  (let ((persp-name (file-name-nondirectory (directory-file-name project-to-switch))))
+    (persp-switch persp-name)
+    (projectile-switch-project-by-name project-to-switch)))
+
+;; Optional: bind this to replace the default projectile switch
+;; (global-set-key (kbd "C-c p p") 'my/projectile-persp-switch-project)
+#+end_src
+
+* Programming
+** setup spelling correction in prog mode
+#+begin_src emacs-lisp
+  (add-hook 'prog-mode-hook 'flyspell-prog-mode)
+#+end_src
+** Install flycheck for language support
+#+begin_src emacs-lisp
+(use-package flycheck)
+#+end_src
+** Snippet support
+#+begin_src emacs-lisp
+  (use-package yasnippet)
+  (yas-global-mode 1) 
+#+end_src
+** Language Server
+We need to pull in emacs lsp mode and various language servers as well as optional addons to augment emacs into a full ledged ide
+
+#+begin_src emacs-lisp
+    (defun jt/lspmode-setup()
+                          (setq lsp-headerline-segments '(path-up-to-project file symbols))
+                          (lsp-headerline-breadcrumb-mode))
+
+    ;; (define-key lsp-mode-map (kbd lsp-keymap-prefix) nil)
+     ;;  (define-key lsp-mode-map(kbd "s-l")lsp-mode-map)
+       (use-package lsp-mode
+         :commands (lsp lsp-deferred)
+         :hook
+         (lsp-mode . jt/lspmode-setup)
+         (python-mode . lsp-deferred)
+
+        ; :init (lsp-keymap-prefix "s-l")
+         :config
+         (lsp-enable-which-key-integration t)
+         (define-key lsp-mode-map (kbd"s-l") lsp-command-map))
+    (use-package lsp-ui
+      :hook (lsp-mode . lsp-ui-mode))
+#+end_src
+
+** Company-mode
+Company mode provides a better ui for completions.
+It makes completions avaidable automatically without having to invoke completion at point
+
+Also we rebind the tab key so it autocompletes for us instead of cycling throug
+cycling through entrys can be done with <j> and <k>.
+
+#+begin_src emacs-lisp
+  
+  (use-package company
+    :after lsp-mode
+    :hook (prog-mode . company-mode)
+    :bind (:map company-active-map
+                ("TAB" . company-complete-selection))
+          (:map lsp-mode-map
+                ("TAB" . company-indent-or-complete-common))
+    :custom
+    (company-minibuffer-prefix-length 1)
+    (company-idle-delay 0.0))
+
+  (use-package company-box
+    :hook (company-mode . company-box-mode))
+
+ #+end_src
+
+** Python
+*** install blacken
+#+begin_src emacs-lisp
+  (use-package blacken)
+#+end_src
+*** install elpy
+#+BEGIN_SRC emacs-lisp
+  (use-package elpy)
+  ;; Enable elpy
+  (elpy-enable)
+
+#+END_SRC
+*** enable flycheck with elpy
+#+BEGIN_SRC emacs-lisp
+
+;; Enable Flycheck
+(when (require 'flycheck nil t)
+  (setq elpy-modules (delq 'elpy-module-flymake elpy-modules))
+  (add-hook 'elpy-mode-hook 'flycheck-mode))
+
+#+END_SRC
+*** support for python venv
+#+begin_src emacs-lisp
+(use-package pyvenv
+  :config
+  (pyvenv-mode t)
+  (setq pyvenv-post-activate-hooks
+        (list (lambda ()
+		(setq lsp-pyright-venv-path pyvenv-virtual-env)
+		(lsp-restart-workspace)
+		))
+	)
+
+  (setq pyvenv-post-deactivate-hooks
+        (list (lambda ()
+		(setq lsp-pyright-venv-path nil)
+		(lsp-restart-workspace)
+		)))
+  )
+#+end_src
+*** lsp support
+pull in lsp support for python
+hook it to python mode and run it with a delay so it doesen start up on every buffer switch
+
+#+begin_src emacs-lisp
+  ; add path to pyright to exec-path
+  (add-to-list 'exec-path "/usr/bin/pyright")
+  (use-package lsp-mode
+    :init
+    (setq lsp-keymap-prefix "C-c l")  ; Consistent prefix
+   ; :hook ((python-mode . lsp)  ; Start LSP for Python mode
+    ;       (python-mode . (lambda ()  ; Set venv path *before* LSP starts
+    ;                       (require 'lsp-pyright)
+    ;                        (when (boundp 'pyvenv-virtual-env) ; Check if pyvenv is active
+     ;                         (setq lsp-pyright-venv-path pyvenv-virtual-env))
+      ;                      (lsp-deferred)))) ; Defer server start
+    :commands lsp
+    :config
+    (lsp-enable-which-key-integration t)
+    (define-key lsp-mode-map (kbd "C-c l") lsp-command-map) ; Use the correct prefix
+    (setq lsp-headerline-segments '(path-up-to-project file symbols))
+    (lsp-headerline-breadcrumb-mode))
+
+  (use-package lsp-pyright
+    :ensure t
+    :custom (lsp-pyright-langserver-command "pyright")) ; Or "npx pyright" if needed
+
+  (use-package lsp-ui
+    :after lsp-mode
+    :hook (lsp-mode . lsp-ui-mode))
+
+#+end_src
+*** Syntax Highliting for Django
+#+begin_src emacs-lisp
+(setq web-mode-engines-alist '(("django" . "\\.html\\'")))
+#+end_src
+** html and css
+Html ans css come preinstalled, however emmet can be a helpfull addition to provide fast completition
+
+#+begin_src emacs-lisp
+  (use-package emmet-mode
+    :hook (sgml-mode . emmet-mode))
+#+end_src
+** Automatic opening of sqlite databases
+I stole this function from https://christiantietze.de/posts/2024/01/emacs-sqlite-mode-open-sqlite-files-automatically/
+#+BEGIN_SRC emacs-lisp
+(use-package sqlite-mode 
+  :config
+  (defun ct/sqlite-view-file-magically ()
+    "Runs `sqlite-mode-open-file' on the file name visited by the
+current buffer, killing it."
+    (require 'sqlite-mode)
+    (let ((file-name buffer-file-name))
+      (kill-current-buffer)
+      (sqlite-mode-open-file file-name)))
+
+  (add-to-list 'magic-mode-alist '("SQLite format 3\x00" . ct/sqlite-view-file-magically)))
+
+#+END_SRC
+** Devdocs documentation search
+#+BEGIN_SRC emacs-lisp
+
+(use-package devdocs)
+
+#+END_SRC
+* Terminal Setup
+** term mode
+#+begin_src emacs-lisp
+  (use-package term
+  :config
+  (setq explicit-shell-file-name "zsh") ;; Change this to bash, etc
+  ;;(setq explicit-zsh-args '())         ;; Use 'explicit-<shell>-args for shell-specific args
+
+  ;; Match the default Bash shell prompt.  Update this if you have a custom prompt
+  (setq term-prompt-regexp "^[^#$%>\n]*[#$%>] *"))
+(use-package eterm-256color
+  :hook (term-mode . eterm-256color-mode))
+
+#+end_src
+
+We set term mode to use zsh by default and use a custom regex to enable it to find the beginning of commands, wich should allow Term mode to jump from one execution to the next .
+
+** vterm
+This terminal emulator uses a native library on your system and is thus faster to execute that standard term mode. it however requires a few external dependencies like libvterm
+
+#+begin_src emacs-lisp
+    (use-package vterm
+      :commands vterm
+      :config
+      (setq term-prompt-regexp "^[^#$%>\n]*[#$%>] *")
+      (setq vterm-shell "zsh")
+      (setq vterm-max-scrollback 10000)
+      (setq vterm-buffer-name-string "vt- %s"))
+    ;; VTerm
+  (defun jt/vterm-toggle ()
+    "Toggle a persistent vterm buffer."
+    (interactive)
+    (if (get-buffer "*vterm*")
+        (if (get-buffer-window "*vterm*")
+            (delete-window (get-buffer-window "*vterm*"))
+          (pop-to-buffer "*vterm*"))
+      (vterm)))
+  (add-hook 'vterm-mode-hook
+          (lambda ()
+            (evil-local-mode -1)))
+#+end_src
+ 
+
+* Org Mode config
+[[file:~/Documents/Vault/3. Practical Notes/org-mode_Introduction.org][Org Mode Introduction
+]]
+To configure Emacses behaviour in Org Mode we will write a custom function
+** Org mode fonts
+This function will configure the Font faces org mode uses, it will be called last in the org :config section
+
+#+begin_src emacs-lisp
+  (defun jt/org-font-setup ()
+    ;; Replace list hyphen with dot
+    (font-lock-add-keywords 'org-mode
+                            '(("^ *\\([-]\\) "
+                               (0 (prog1 () (compose-region (match-beginning 1) (match-end 1) "•"))))))
+    ;; Set faces for heading levels
+    (dolist (face '((org-level-1 . 1.2)
+                    (org-level-2 . 1.1)
+                    (org-level-3 . 1.05)
+                    (org-level-4 . 1.0)
+                    (org-level-5 . 1.1)
+                    (org-level-6 . 1.1)
+                    (org-level-7 . 1.1)
+                    (org-level-8 . 1.1)))
+      (set-face-attribute (car face) nil :font "URWBookman" :weight 'bold :height (cdr face)))
+
+    ;; Ensure that anything that should be fixed-pitch in Org files appears that way
+    (set-face-attribute 'org-block nil    :foreground 'unspecified :inherit 'fixed-pitch)
+    (set-face-attribute 'org-table nil    :inherit 'fixed-pitch)
+    (set-face-attribute 'org-formula nil  :inherit 'fixed-pitch)
+    (set-face-attribute 'org-code nil     :inherit '(shadow fixed-pitch))
+    (set-face-attribute 'org-table nil    :inherit '(shadow fixed-pitch))
+    (set-face-attribute 'org-verbatim nil :inherit '(shadow fixed-pitch))
+    (set-face-attribute 'org-special-keyword nil :inherit '(font-lock-comment-face fixed-pitch))
+    (set-face-attribute 'org-meta-line nil :inherit '(font-lock-comment-face fixed-pitch))
+    (set-face-attribute 'org-checkbox nil  :inherit 'fixed-pitch)
+    (set-face-attribute 'line-number nil :inherit 'fixed-pitch)
+    (set-face-attribute 'line-number-current-line nil :inherit 'fixed-pitch))
+  
+#+end_src
+** set up Org mode buffers to be centered and automatically indented
+
+this function is used as a hook when org mode is launched
+#+begin_src emacs-lisp
+          (defun jt/org-mode-setup()
+            (org-indent-mode) ;; indent text according to outline
+            (variable-pitch-mode 1);; variable default face so things look more like documents.
+            (auto-fill-mode 0) ;;automatic line breaking isnt needed
+            (visual-line-mode 1) ;; enable visual line break
+            ) ;;set font in source code blocks to NerdFonts variation of  Source Code Pro 
+#+end_src
+
+** Include doct to simplify template config
+this is used to write more readable template configurations
+
+#+begin_src emacs-lisp
+    (use-package doct
+             :ensure t)
+#+end_src
+
+** finally set up Org mode itself
+Here we configure Org Mode and its features itself
+
+#+begin_src emacs-lisp
+
+            (use-package org
+              :hook (org-mode . jt/org-mode-setup)
+              :config
+              (setq org-ellipsis "▼"
+                    org-hide-emphasis-markers t
+                 )
+              (setq org-modules (append org-modules '(org-protocol org-capture)))
+
+
+              ;; Org agenda configuration
+              (setq org-agenda-start-with-log-mode t)
+              (setq org-log-done 'time)
+              (setq org-log-into-drawer t)
+              ;;set files for org agenda
+              (setq org-agenda-files
+                    '("~/Nextcloud/Synced_Org_Files/ToDos_Emacs.org"
+                      "~/Nextcloud/Synced_Org_Files/DailyRepeatedTodos.org"
+                      "~/Nextcloud/Synced_Org_Files/RoamNodes/appointments-29052025|165709.org"
+                      "~/Nextcloud/Synced_Org_Files/RoamNodes/todos-29052025|170117.org"
+                      )
+              )
+              ;;set default for Notes
+              (setq org-default-notes-file "~/Nextcloud/Synced_Org_Files/Running_Notes.org")
+
+              ;; create an archive file
+              (setq org-refile-targets
+                    '(("Archive.org" :maxlevel . 1))
+                    )
+              ;; save all org buffers after refile
+              (advice-add 'org-refile :after 'org-save-all-org-buffers)
+              ;; set todo states
+              (setq org-todo-keywords
+                    ;; anything after "|" is a completed state and the () define the hotkey
+                    '((sequence "TODO(t)" "NEXT(n)" "|" "DONE(d!)")
+                      (sequence "Not treated(u)" "In Progress(p)" "Later(l)" "|" "Treated(x!)" "Canceled(c)")
+                      ))
+
+              ;; set known tags
+              ;; places are mutually exclusive
+              (setq org-tag-alist
+              '((:startgroup)
+                 ; Put mutually exclusive tags here
+                 ; Places
+                 ("HOME". ?H)
+                 ("BTZ" . ?B)
+                 ("DSL" . ?D)
+                 ("ADG" . ?A)
+                 (:endgroup)
+                 ("errand" . ?e)
+                 ("job" . ?j)
+                 ("housework" . ?h)
+                 ("appointment" . ?a)
+                 ))
+
+              ;; agenda views
+              (setq org-agenda-custom-commands
+                    '(("d" "Dashboard"
+                       ((agenda "" ((org-deadline-warning-days 7)))
+                        (todo "NEXT"
+                              ((org-agenda-overriding-header "Next Tasks")))
+                        ))
+
+                      ("n" "Next Tasks"
+                       ((todo "NEXT"
+                              ((org-agenda-overriding-header "Next Tasks")))))
+
+                      ("W" "Work Tasks"
+                       tags "+job"
+                       ((org-agenda-overriding-header "Work Tasks")))
+                      ("O" "Outside Tasks"
+                       tags "errand|appointment|BTZ|ADG|DSL"
+                    ((org-agenda-overriding-header "Outside Tasks")))
+                      ("h" "Housework"
+                       tags-todo "+housework"
+                       ((org-agenda-overriding-header "Work Tasks")))
+
+              ;; Low-effort next actions
+              ("e" tags-todo "+TODO=\"NEXT\"+Effort<15&+Effort>0"
+               ((org-agenda-overriding-header "Low Effort Tasks")
+                (org-agenda-max-todos 20)
+                (org-agenda-files org-agenda-files)))
+          ))
+
+              (setq org-capture-templates
+               '(("t" "Task" entry
+                  (file+headline "~/Nextcloud/Synced_Org_Files/RoamNodes/todos-29052025|170117.org" "ToDo")
+             "* TODO %?\n  %i\n  %a"
+             :empty-lines 1)
+
+            ("m" "Meeting" entry
+             (file+headline "~/Nextcloud/Synced_Org_Files/Running_Apointments.org" "Appointments")
+             "* MEETING %? :meeting:\n%U\n%i\n%a"
+             :empty-lines 1)
+
+            ("n" "Note" entry
+             (file+headline org-default-notes-file "Notes")
+             "* %? :note:\n%U\n%i\n%a"
+             :empty-lines 1)
+
+            ("r" "Read Later" entry
+             (file+headline "~/Nextcloud/Synced_Org_Files/Read_later.org" "Read later")
+             "* [[%x][%^{Title}]]\n:PROPERTIES:\n:CAPTURED_AT: %U\n:END:\n%i\n"
+             :immediate-finish t
+             :jump-to-captured t
+             :prepend t
+             :empty-lines 1 
+             :hook (lambda () (org-web-tools-insert-web-page-as-entry)))
+
+           ("d" "Default" plain
+                    (file (lambda () (read-file-name "Speicherpfad: ")))
+                    (file "~/Templates/OrgMode/Org-base-properties.org")
+                    :empty-lines 1
+                    :immediate-finish t
+                    :jump-to-captured t)
+           ("c" "Code" plain
+                    (file (lambda () (read-file-name "Speicherpfad: ")))
+                    (file "~/Templates/OrgMode/CodeTangleDefault.org")
+                    :empty-lines 1
+                    :immediate-finish t
+                    :jump-to-captured t)
+            )
+      )
+              (jt/org-font-setup)
+              )
+      
+     (setq org-return-follows-link t)
+
+#+end_src
+
+this setup method sets a few variables wheneve an org mode buffer starts up
+it also binds the template insertion to C-<
+** Allowing for syntax highlights to be escaped
+The following code allowes for characters that would normaly have syntactic meaning in org mode, lke * for bole ~ for verbatim or / for italic, to be replaced by there corresponding org entity so that you can escape them and apply the formatting to the symbol, so as to make a * bold
+If org-pretty-entities is set to t, the inserted \ast{} will be displayed as *
+#+BEGIN_SRC emacs-lisp
+
+(defun modi/org-entity-get-name (char)
+  "Return the entity UTF-8 character for CHAR, e.g., return \"*\" for *."
+  (let ((ll (append org-entities-user org-entities))
+        e utf8)
+    (catch 'break
+      (while ll
+        (setq e (pop ll))
+        (when (not (stringp e))
+          (setq utf8 (nth 6 e))  ; 6th element is the UTF-8 character
+          (when (string= char utf8)
+            (throw 'break utf8)))))))
+
+(defun modi/org-insert-org-entity-maybe (&rest args)
+  "With C-u prefix, insert the UTF-8 character from `org-entities' if available."
+  (let ((pressed-key (substring (this-command-keys) -1))
+        entity-char)
+    (when (and (listp args) (eq 4 (car args)))
+      (setq entity-char (modi/org-entity-get-name pressed-key))
+      (when entity-char
+        (insert entity-char)
+        (message (concat "Inserted UTF-8 entity "
+                         (propertize entity-char 'face 'font-lock-function-name-face)
+                         " for symbol "
+                         (propertize pressed-key 'face 'font-lock-function-name-face)))
+        (throw 'break entity-char)))
+    nil))  ; fallback to normal insert if no match
+
+;; Run `org-self-insert-command` only if no entity was inserted
+(advice-add 'org-self-insert-command :before-until #'modi/org-insert-org-entity-maybe)
+
+(setq org-pretty-entities t)
+
+#+END_SRC
+
+
+(defun modi/org-entity-get-name (char)
+  "Return the entity name for CHAR. For example, return \"ast\" for *."
+  (let ((ll (append org-entities-user
+                    org-entities))
+        e name utf8)
+    (catch 'break
+      (while ll
+        (setq e (pop ll))
+        (when (not (stringp e))
+          (setq utf8 (nth 6 e))
+          (when (string= char utf8)
+            (setq name (car e))
+            (throw 'break name)))))))
+
+(defun modi/org-insert-org-entity-maybe (&rest args)
+  "When the universal prefix C-u is used before entering any character,
+    insert the character's `org-entity' name if available.
+
+    If C-u prefix is not used and if `org-entity' name is not available, the
+    returned value `entity-name' will be nil."
+  ;; It would be fine to use just (this-command-keys) instead of
+  ;; (substring (this-command-keys) -1) below in emacs 25+.
+  ;; But if the user pressed "C-u *", then
+  ;;  - in emacs 24.5, (this-command-keys) would return "^U*", and
+  ;;  - in emacs 25.x, (this-command-keys) would return "*".
+  ;; But in both versions, (substring (this-command-keys) -1) will return
+  ;; "*", which is what we want.
+  ;; http://thread.gmane.org/gmane.emacs.orgmode/106974/focus=106996
+  (let ((pressed-key (substring (this-command-keys) -1))
+        entity-name)
+    (when (and (listp args) (eq 4 (car args)))
+      (setq entity-name (modi/org-entity-get-name pressed-key))
+      (when entity-name
+        (setq entity-name (concat "\\" entity-name "{}"))
+        (insert entity-name)
+        (message (concat "Inserted `org-entity' "
+                         (propertize entity-name
+                                     'face 'font-lock-function-name-face)
+                         " for the symbol "
+                         (propertize pressed-key
+                                     'face 'font-lock-function-name-face)
+                         "."))))
+    entity-name))
+
+;; Run `org-self-insert-command' only if `modi/org-insert-org-entity-maybe'
+;; returns nil.
+(advice-add 'org-self-insert-command :before-until #'modi/org-insert-org-entity-maybe)
+(setq org-pretty-entities t)
+
+** Activate spellchecking in org mode
+#+begin_src emacs-lisp
+  (add-hook 'org-mode-hook 'flyspell-mode)
+  (add-to-list 'ispell-skip-region-alist '("#\\+begin_src". "#\\+end_src"))
+#+end_src
+** add visually appealing bullets for headdingst items 
+By using the org-bullets package we can tweak the appearence of headdings as to not end up with 5* in a row on n rows
+
+#+begin_src emacs-lisp
+  (use-package org-bullets
+  :after org
+  :hook (org-mode . org-bullets-mode)
+  :custom
+  (org-bullets-bullet-list '("◉" "○" "●" "○" "●" "○" "●")))
+
+#+end_src
+
+to change the - into a dot we can instruct emacs to replace - with dots whenever it sees an org mode file with a - at the beginning of the line.
+This is done using regular expressions
+
+#+begin_src emacs-lisp
+ (defun jt/org-dot-setup ()
+  ;; Replace list hyphen with dot
+  (font-lock-add-keywords 'org-mode
+                          '(("^ *\\([-]\\) "
+                             (0 (prog1 () (compose-region (match-beginning 1) (match-end 1) "•"))))))) 
+#+end_src
+
+** fix document spacing in org mode
+
+in order to not be looking at the side of the screen all the time it might be helpfull to instruct emacs to space out the text a bit more
+
+#+begin_src emacs-lisp
+    (defun jt/org-mode-visual-fill ()
+    (setq visual-fill-column-width 100
+	  visual-fill-column-center-text t)
+    (visual-fill-column-mode 1))
+
+  (use-package visual-fill-column
+    :hook (org-mode . jt/org-mode-visual-fill))
+#+end_src
+
+** Org mode support for Programming Languages
+
+#+begin_src emacs-lisp
+
+      (org-babel-do-load-languages
+        'org-babel-load-languages
+        '((emacs-lisp . t)
+          (python . t)
+          (java . t)
+          (shell . t)))
+
+      (push '("conf-unix" . conf-unix) org-src-lang-modes)
+
+#+end_src
+
+** Org export additions for exporting into different types of documents
+#+begin_src emacs-lisp
+  (use-package ox-gfm
+    :after org) ;; github flavourd markdown
+  (use-package ox-pandoc
+    :after org) ;; export to various files via pandoc
+#+end_src
+
+** custom Latex classes
+#+begin_src emacs-lisp
+  (with-eval-after-load 'ox-latex
+    (add-to-list 'org-latex-classes
+                 '("org-plain-latex"
+                   "\\documentclass{article}
+                [NO-DEFAULT-PACKAGES]
+                [PACKAGES]
+                [EKTRA]"
+                   ("\\section{%s}" . "\\section*{%s}")
+                   ("\\subsection{%s}" . "\\subsection*{%s}")
+                   ("\\subsubsection{%s}" . "\\subsubsection*{%s}")
+                   ("\\paragraph{%s}" . "\\paragraph*{%s}")
+                   ("\\subparagraph{%s}" . "\\subparagraph*{%s}"))))
+#+end_src
+** Enable Latex support for listings
+#+begin_src emacs-lisp
+  (setq org-latex-listings 't)
+  (setq org-latex-src-block-backend 'listings)
+#+end_src
+** ORG Roam
+Org Roam is a Zettelkasten Module for Org-Mode
+Basically what obsidian was, but inside Emacs and with all the power of org mode
+
+#+begin_src emacs-lisp
+  (use-package org-roam
+    :ensure t
+    :custom
+    (org-roam-directory "~/Nextcloud/Synced_Org_Files/RoamNodes")
+    (org-roam-competion-everywhere t)
+    (org-roam-capture-templates
+      '(("d" "default" plain
+         "%?"
+         :if-new (file+head "${slug}-%<%d%m%Y|%H%M%S>.org"
+                            ":PROPERTIES:\n:ID:       %(org-id-uuid)\n:END:\n#+title: ${title}\n#+filetags: \n# Backlink: \n")
+         :unnarrowed t)))
+
+    :bind(("C-c n l" . org-roam-buffer-toggle)
+          ("C-c n f" . org-roam-node-find)
+          ("C-c n i" . org-roam-node-insert)
+          :map org-mode-map
+          ("C-M-i" . completion-at-point))
+    :config
+    (org-roam-setup))
+   (require 'org-roam-node)
+#+end_src
+*** Adding a graphical frontend to org roam
+org-roam-ui uses your webbrowser to display your Zettelkasten
+#+BEGIN_SRC emacs-lisp
+    (use-package org-roam-ui
+      :after org-roam ;; or :after org
+  ;;         normally we'd recommend hooking orui after org-roam, but since org-roam does not have
+  ;;         a hookable mode anymore, you're advised to pick something yourself
+  ;;         if you don't care about startup time, use
+  ;;  :hook (after-init . org-roam-ui-mode)
+      :config
+      (setq org-roam-ui-sync-theme t
+            org-roam-ui-follow t
+            org-roam-ui-update-on-save t
+            org-roam-ui-open-on-start nil))
+  (setq org-roam-graph-viewer nil)
+#+END_SRC
+* Link handling in emacs
+** grab link from browser
+begin_src emacs-lisp
+  (use-package grab-x-link)
+  (defun save-buffer-as-org-with-timestamp ()
+  "Speichert den aktuellen Buffer als .org-Datei mit einem Timestamp im Dateinamen in ~/later/."
+  (interactive)
+  (let* ((timestamp (format-time-string "%Y%m%d-%H%M%S")) ; Erzeugt den Timestamp im Format: YYYYMMDD-HHMMSS
+         (target-dir "~/Nextcloud/Synced_Org_Files/Read_later/") ; Das Zielverzeichnis
+         (filename (concat target-dir timestamp ".org")) ; Der vollständige Dateiname
+         (current-buffer-content (buffer-string))) ; Der Inhalt des aktuellen Buffers
+    (unless (file-directory-p target-dir) ; Überprüft, ob das Zielverzeichnis existiert
+      (make-directory target-dir t)) ; Erzeugt das Verzeichnis, falls es nicht existiert
+    (with-temp-buffer
+      (insert current-buffer-content) ; Fügt den Inhalt des aktuellen Buffers in den temporären Buffer ein
+      (write-file filename)) ; Speichert den temporären Buffer unter dem neuen Namen
+    (message "Buffer gespeichert als %s" filename))) ; Bestätigung der Speicherung
+end_src
+add org-web-tools
+set a user agent string to look like a browser
+begin_src emacs-lisp
+  (use-package org-web-tools)
+  (setq url-user-agent "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/123.0.0.0 Safari/537.36")
+end_src
+Configure curl for org web tools
+begin_src emacs-lisp
+(setq org-web-tools-curl-command-options 
+      "--location --compressed --silent --show-error --user-agent 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/123.0.0.0 Safari/537.36' --header 'Accept: text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8' --header 'Accept-Language: en-US,en;q=0.5' --header 'Referer: https://www.google.com/' --header 'DNT: 1' --header 'Connection: keep-alive' --header 'Upgrade-Insecure-Requests: 1' --header 'Cache-Control: max-age=0' --cookie-jar /tmp/curl-cookies --cookie /tmp/curl-cookies")
+end_src
+
+** custom HTML to Org Converter
+
+begin_src emacs-lisp
+  (defun html-file-to-org (html-file output-file)
+    "Convert HTML file to Org format and save to OUTPUT-FILE."
+    (interactive "fHTML file: \nFOutput Org file: ")
+    (call-process "pandoc" nil nil nil
+                 "-f" "html" "-t" "org"
+                 html-file "-o" output-file)
+    (message "Converted %s to %s" html-file output-file))
+
+  (defun html-file-to-org-in-place (html-file)
+  "Convert an HTML file to Org format and save as name.org in the same directory."
+  (interactive "fSelect HTML file: ")
+  (let* ((basename (file-name-base html-file))
+         (directory (file-name-directory html-file))
+         (output-file (expand-file-name (concat basename ".org") directory)))
+    (call-process "pandoc" nil nil nil
+                  "-f" "html" "-t" "org"
+                  html-file "-o" output-file)
+    (message "Converted %s to %s" html-file output-file)))
+end_src
+** remove base64-encoded images
+BEGIN_SRC emacs-lisp
+
+(defun remove-base64-images ()
+  "Remove all base64-encoded image links from the current buffer."
+  (interactive)
+  (save-excursion
+    (goto-char (point-min))
+    (let ((pattern "\\[\\[data:image/[^;]+;base64,[^]]+?\\]\\]"))
+      (while (re-search-forward pattern nil t)
+        (replace-match "")))))
+
+
+END_SRC
+* Tools
+** IRC client - circe
+
+Install circe and add default connection to LiberaChat and a few default channels.
+
+The configuration of the bitlbee server depends on a /.privat.el/ file stored in /.config/emacs/ with the following content =(:bitlbee-password "NickservPassword")=
+
+begin_src emacs-lisp
+  (use-package circe
+    :config
+    (setq my-credentials-file "~/.config/emacs/.private.el")
+    (setq circe-reduce-lurker-spam t)
+    (defun my-bitlbee-password (server)
+      (with-temp-buffer
+        (insert-file-contents-literally my-credentials-file)
+        (plist-get (read (buffer-string)) :bitlbee-password)))
+
+    (setq circe-network-options
+    '(("Libera Chat"
+       :tls t
+       :nick "sulumar"
+       :channels ("#systemcrafters" "#emacs" "#emacs-circe")
+       )
+      )))
+end_src
+
+add a custom irc functio to connect to libera and bitlbee in one go
+
+begin_src emacs-lisp
+(defun irc ()
+  "Connect to IRC"
+  (interactive)
+  (circe "Libera Chat")
+  (circe "Bitlbee"))
+end_src
+* autoload perspective
+#+BEGIN_SRC emacs-lisp
+
+(defvar my/session-restored nil
+  "Ensures session and sidebar are only set up once.")
+
+(defun my/restore-session-and-sidebar ()
+  "Load perspective session and open dired-sidebar."
+  ;; Load perspective session
+  (let ((session-file (expand-file-name "persp-session.el" user-emacs-directory)))
+    (when (and (featurep 'perspective)
+               (file-exists-p session-file))
+      (persp-state-load session-file)))
+  ;; Open sidebar pointing at home directory
+  (when (featurep 'dired-sidebar)
+    (let ((default-directory (expand-file-name "~")))
+      (dired-sidebar-show-sidebar))))
+
+(defun my/setup-first-client-frame (frame)
+  "Restore session on the first emacsclient frame only."
+  (when (and (daemonp) (not my/session-restored))
+    (setq my/session-restored t)
+    (with-selected-frame frame
+      (run-with-timer 0.5 nil #'my/restore-session-and-sidebar))))
+
+(add-hook 'server-after-make-frame-hook
+          (lambda () (my/setup-first-client-frame (selected-frame))))
+
+#+END_SRC
+* Gimmicks
+** DISABLED - Discord rich presence
+Add Presence detection for discord
+
+#+begin_example
+  (use-package elcord
+  :init
+  (elcord-mode 1))
+#+end_example
+* Fixing keys
+#+begin_src emacs-lisp
+
+  (keymap-global-unset "C-s")
+  (keymap-global-set "C-s" 'swiper)
+  (global-set-key (kbd "C-<return>") 'jt/vterm-toggle)
+  (with-eval-after-load 'flyspell
+  (define-key flyspell-mode-map (kbd "C-;") #'flyspell-correct-wrapper))
+#+end_src
+
+* Org-roam rofi search integration
+
+#+BEGIN_Example
+
+;; Org Roam Rofi Integration - Emacs Configuration
+;; Add this AFTER your existing org-roam configuration
+
+;; Helper function to ensure JSON encoding works properly
+(defun org-roam-rofi--encode-string (str)
+  "Properly encode string for JSON output."
+  (if str
+      (json-encode-string str)
+    "\"\""))
+
+;; Enhanced node search function for Rofi integration
+(defun org-roam-rofi-search-nodes (&optional query)
+  "Search org-roam nodes by title and tags, return JSON for Rofi integration."
+  (let ((query (or query "")))
+    (json-encode
+     (mapcar
+      (lambda (node)
+        (let* ((title (org-roam-node-title node))
+               (tags (org-roam-node-tags node))
+               (file (org-roam-node-file node))
+               (id (org-roam-node-id node))
+               (outline (org-roam-node-outline node)))
+          `((title . ,(or title ""))
+            (tags . ,(mapconcat 'identity (or tags '()) ", "))
+            (file . ,(or file ""))
+            (id . ,(or id ""))
+            (outline . ,(if outline (mapconcat 'identity outline " > ") "")))))
+      (if (string-empty-p query)
+          (org-roam-node-list)
+        (seq-filter
+         (lambda (node)
+           (let ((title (downcase (or (org-roam-node-title node) "")))
+                 (tags (mapconcat 'identity (or (org-roam-node-tags node) '()) " "))
+                 (search-term (downcase query)))
+             (or (string-match-p search-term title)
+                 (string-match-p search-term (downcase tags)))))
+         (org-roam-node-list)))))))
+
+;; Function to create a new node using your existing template format
+(defun org-roam-rofi-create-node (title)
+  "Create a new org-roam node with TITLE using your default template."
+  (let* ((node (org-roam-node-create :title title))
+         ;; Use the same template format as your existing config
+         (template '("d" "default" plain "%?"
+                    :target (file+head "${slug}-%<%d%m%Y|%H%M%S>.org"
+                                     ":PROPERTIES:\n:ID:       %(org-id-uuid)\n:END:\n#+title: ${title}\n#+filetags: \n# Backlink: \n")
+                    :unnarrowed t)))
+    ;; Start capture process using your existing templates
+    (org-roam-capture-
+     :node node
+     :templates (list template))
+    ;; Return the node ID
+    (org-roam-node-id node)))
+
+;; Function to open a node by ID in current frame
+(defun org-roam-rofi-open-node (node-id)
+  "Open org-roam node with NODE-ID in current frame."
+  (let ((node (org-roam-node-from-id node-id)))
+    (if node
+        (progn
+          (find-file (org-roam-node-file node))
+          (when (org-roam-node-point node)
+            (goto-char (org-roam-node-point node)))
+          ;; Narrow to subtree if it's a subtree node
+          (when (org-roam-node-level node)
+            (org-narrow-to-subtree))
+          t)
+      nil)))
+
+;; Optional: Add keybinding for the Rofi integration
+(jt/leader-keys
+  "kr" '((lambda () (interactive) 
+           (start-process "org-roam-rofi" nil "org-roam-rofi.py")) 
+         :which-key "Rofi search/create"))
+
+#+END_EXAMPLE

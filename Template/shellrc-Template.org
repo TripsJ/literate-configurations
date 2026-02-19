@@ -1,0 +1,558 @@
+#+title: Shell Configuration (Bash & Zsh)
+#+author: Your Name
+#+property: header-args :tangle no :noweb no-export :results silent
+#+startup: overview
+
+* About this Configuration
+
+This literate shell configuration maintains both Bash and Zsh from a single Org file.
+Code is organized by topic, shared between shells using noweb references, with shell-specific blocks where needed.
+
+Structure:
+- *Shared* blocks: Used by both Bash and Zsh (aliases, functions, environment variables)
+- *Shell-Specific* blocks: Bash-only or Zsh-only configurations (options, completion settings)
+
+To regenerate the shell configs, run:
+  =C-c C-v t= (in Emacs)
+  or =org-babel-tangle-file "shellrc.org"=
+
+** Repository Structure
+
+This org file is part of a literate config repository:
+
+#+begin_example
+dotfiles/
+├── shellrc.org           (this file - generates both .bashrc and .zshrc)
+├── .bashrc              (tangled output)
+├── .zshrc               (tangled output)
+├── emacs-init.org       (your Emacs config)
+└── README.md
+#+end_example
+
+** Key Org-Babel Concepts Used
+
+- =:tangle FILE= - specifies which file(s) to write the code block to
+- =:noweb yes= - enables noweb reference expansion (=<<ref-name>>=)
+- =#+name:= - labels a code block for noweb reference
+- =#+noweb-ref:= - attaches content to a named reference for inlining
+
+** File Generation Notes
+
+After editing this file, tangle with =C-c C-v t= to generate:
+- ~/.bashrc
+- ~/.zshrc
+
+Both files will source this tangle output with their native sourcing mechanism.
+
+---
+
+* Initialization & Sourcing
+
+This section ensures proper shell initialization across login and interactive shells.
+
+** Shared Pre-Initialization
+
+Code that runs before anything else, for both shells.
+
+#+name: shared-preface
+#+begin_src bash
+# Generated from literate config: ~/dotfiles/shellrc.org
+# Do not edit directly - edit the .org file and retangle
+
+# Exit early if running non-interactively
+[[ $- == *i* ]] || return
+#+end_src
+
+** Bash Initialization Header
+
+Specific to =~/.bashrc= - runs on every interactive bash shell.
+
+#+begin_src bash :tangle ~/.bashrc
+<<shared-preface>>
+#+end_src
+
+** Zsh Initialization Header
+
+Specific to =~/.zshrc= - runs on every interactive zsh shell.
+
+#+begin_src zsh :tangle ~/.zshrc
+<<shared-preface>>
+#+end_src
+
+---
+
+* Environment Variables
+
+Core environment setup shared by both shells.
+
+** Shared Exports
+
+#+name: shared-exports
+#+begin_src bash
+# Editor preference
+export EDITOR=vim
+export VISUAL=vim
+
+# Language and locale
+export LANG=en_US.UTF-8
+export LC_ALL=en_US.UTF-8
+
+# Path: Common directories
+export PATH="$HOME/.local/bin:$HOME/.cargo/bin:$PATH"
+
+# History configuration (shell-specific values will override)
+export HISTSIZE=10000
+export SAVEHIST=10000
+
+# Colors for ls and grep
+export CLICOLOR=1
+export GREP_OPTIONS='--color=auto'
+#+end_src
+
+** Bash Exports
+
+Bash-specific environment variables.
+
+#+begin_src bash :tangle ~/.bashrc
+<<shared-exports>>
+
+# Bash-specific history settings
+export HISTCONTROL=ignoredups:erasedups
+export HISTTIMEFORMAT="%Y-%m-%d %H:%M:%S "
+#+end_src
+
+** Zsh Exports
+
+Zsh-specific environment variables.
+
+#+begin_src zsh :tangle ~/.zshrc
+<<shared-exports>>
+
+# Zsh-specific history settings (handled via setopt below)
+#+end_src
+
+---
+
+* Core Options & Settings
+
+Shell behavior configuration.
+
+** Bash Options
+
+#+begin_src bash :tangle ~/.bashrc
+# History
+shopt -s histappend           # Append to history file
+shopt -s cmdhist              # Multi-line commands in one history entry
+
+# Interactive features
+shopt -s checkwinsize         # Update LINES and COLUMNS after window resize
+shopt -s globstar             # ** matches all files recursively
+shopt -s extglob              # Extended glob patterns
+
+# Completion
+shopt -s progcomp             # Programmable completion
+#+end_src
+
+** Zsh Options
+
+#+begin_src zsh :tangle ~/.zshrc
+# History
+setopt HIST_APPEND            # Append to history file
+setopt HIST_IGNORE_DUPS       # Ignore duplicate entries
+setopt HIST_FIND_NO_DUPS      # Don't show duplicates in history search
+setopt HIST_IGNORE_SPACE      # Ignore entries starting with space
+
+# Completion
+setopt AUTO_LIST              # Automatically list completions
+setopt AUTO_MENU              # Automatically use menu completion
+setopt COMPLETE_IN_WORD       # Complete from middle of word
+setopt ALWAYS_TO_END          # Move to end after completion
+
+# Navigation
+setopt AUTO_CD                # cd to directory if name is entered alone
+setopt PUSHD_IGNORE_DUPS      # Ignore duplicate dirs in pushd
+#+end_src
+
+---
+
+* Aliases
+
+Shared command shortcuts and convenience functions.
+
+** Common Aliases
+
+#+name: shared-aliases
+#+begin_src bash
+# Navigation and listing
+alias ls='ls -h --color=auto'
+alias la='ls -A'
+alias ll='ls -lA'
+alias lh='ls -lhA'
+alias cd..='cd ..'
+alias ...='cd ../..'
+alias ....='cd ../../..'
+
+# Frequently used commands
+alias ll='ls -lh'
+alias grep='grep --color=auto'
+alias less='less -R'
+alias clear='clear; history -c'
+
+# Safety
+alias rm='rm -i'
+alias mv='mv -i'
+alias cp='cp -i'
+
+# Git shortcuts (if using git)
+alias g='git'
+alias gs='git status'
+alias gd='git diff'
+alias ga='git add'
+alias gc='git commit'
+alias gco='git checkout'
+alias glog='git log --oneline -n 20'
+#+end_src
+
+** Bash-specific Aliases
+
+#+begin_src bash :tangle ~/.bashrc
+<<shared-aliases>>
+
+# Bash-specific convenience
+alias reload='source ~/.bashrc'
+#+end_src
+
+** Zsh-specific Aliases
+
+#+begin_src zsh :tangle ~/.zshrc
+<<shared-aliases>>
+
+# Zsh-specific convenience
+alias reload='source ~/.zshrc'
+alias rehash='rehash'  # Zsh: rebuild command hash table
+#+end_src
+
+---
+
+* Functions
+
+Reusable shell functions for common tasks.
+
+** Shared Functions
+
+#+name: shared-functions
+#+begin_src bash
+# Make and cd into a directory
+mcd() {
+  mkdir -p "$1" && cd "$1"
+}
+
+# Find files matching a pattern
+fif() {
+  if [ -z "$1" ]; then
+    echo "Usage: fif <pattern>"
+    return 1
+  fi
+  find . -type f -name "*$1*"
+}
+
+# Search in files
+# Usage: search "pattern" [path]
+search() {
+  local pattern="$1"
+  local path="${2:-.}"
+  grep -r --color=auto "$pattern" "$path"
+}
+
+# Create a backup of a file
+backup() {
+  if [ -z "$1" ]; then
+    echo "Usage: backup <file>"
+    return 1
+  fi
+  cp "$1" "$1.backup"
+  echo "Backed up $1 to $1.backup"
+}
+
+# Show disk usage of current directory
+duh() {
+  du -sh * | sort -rh
+}
+#+end_src
+
+** Bash-specific Functions
+
+#+begin_src bash :tangle ~/.bashrc
+<<shared-functions>>
+
+# Extract archive files
+extract() {
+  if [ -f "$1" ]; then
+    case "$1" in
+      *.tar.bz2) tar xjf "$1" ;;
+      *.tar.gz)  tar xzf "$1" ;;
+      *.tar.xz)  tar xJf "$1" ;;
+      *.bz2)     bunzip2 "$1" ;;
+      *.rar)     unrar x "$1" ;;
+      *.gz)      gunzip "$1" ;;
+      *.tar)     tar xf "$1" ;;
+      *.tbz2)    tar xjf "$1" ;;
+      *.tgz)     tar xzf "$1" ;;
+      *.zip)     unzip "$1" ;;
+      *.Z)       uncompress "$1" ;;
+      *.7z)      7z x "$1" ;;
+      *)         echo "Cannot extract '$1'" ;;
+    esac
+  else
+    echo "'$1' is not a valid file"
+  fi
+}
+#+end_src
+
+** Zsh-specific Functions
+
+#+begin_src zsh :tangle ~/.zshrc
+<<shared-functions>>
+
+# Zsh-specific enhanced completion awareness
+# (Zsh has better built-in completion, so fewer custom functions needed)
+#+end_src
+
+---
+
+* Git Configuration
+
+Git-related shortcuts and helpers.
+
+** Git Aliases & Helpers
+
+#+name: shared-git
+#+begin_src bash
+# View git status with untracked files
+gst() {
+  git status
+}
+
+# Show commits with author
+glog() {
+  git log --oneline --author="${1:-.}" -n "${2:-10}"
+}
+
+# Quick commit and push
+gcap() {
+  if [ -z "$1" ]; then
+    echo "Usage: gcap <message>"
+    return 1
+  fi
+  git add -A && git commit -m "$1" && git push
+}
+
+# Branches
+gbr() {
+  git branch -vv
+}
+
+grm() {
+  git remote -v
+}
+#+end_src
+
+** Bash Git Configuration
+
+#+begin_src bash :tangle ~/.bashrc
+<<shared-git>>
+#+end_src
+
+** Zsh Git Configuration
+
+#+begin_src zsh :tangle ~/.zshrc
+<<shared-git>>
+#+end_src
+
+---
+
+* Development Tools
+
+Configuration for programming languages and development environments.
+
+** Python & Virtual Environments
+
+#+name: python-setup
+#+begin_src bash
+# Python: prefer python3
+alias python=python3
+alias pip=pip3
+
+# Virtual environment activation helper
+venv() {
+  if [ -z "$1" ]; then
+    echo "Usage: venv <path>"
+    return 1
+  fi
+  if [ ! -d "$1" ]; then
+    python3 -m venv "$1"
+  fi
+  source "$1/bin/activate"
+}
+#+end_src
+
+** Node.js & npm
+
+#+name: node-setup
+#+begin_src bash
+# Node version manager (if using nvm)
+# export NVM_DIR="$HOME/.nvm"
+# [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
+
+# npm aliases
+alias ni='npm install'
+alias nid='npm install --save-dev'
+#+end_src
+
+** Bash Development Setup
+
+#+begin_src bash :tangle ~/.bashrc
+<<python-setup>>
+
+<<node-setup>>
+#+end_src
+
+** Zsh Development Setup
+
+#+begin_src zsh :tangle ~/.zshrc
+<<python-setup>>
+
+<<node-setup>>
+#+end_src
+
+---
+
+* Prompt Configuration
+
+Shell prompt (PS1) and visual customization.
+
+** Bash Prompt
+
+#+begin_src bash :tangle ~/.bashrc
+# Simple but informative prompt
+# Format: user@host:directory$
+PS1='\u@\h:\W\$ '
+
+# Colored prompt (uncomment for colors)
+# PS1='\[\033[01;32m\]\u@\h\[\033[00m\]:\[\033[01;34m\]\W\[\033[00m\]\$ '
+#+end_src
+
+** Zsh Prompt
+
+#+begin_src zsh :tangle ~/.zshrc
+# Simple zsh prompt
+PROMPT='%n@%m:%~$ '
+
+# For a more feature-rich prompt, consider:
+# - Using a framework like Oh My Zsh
+# - Installing a theme with git status indicators
+# Uncomment and customize as needed:
+# PROMPT='%F{green}%n%f@%F{blue}%m%f:%F{cyan}%~%f%% '
+#+end_src
+
+---
+
+* Completions & Enhancements
+
+Advanced shell features (bash completion, zsh completion).
+
+** Bash Completion
+
+#+begin_src bash :tangle ~/.bashrc
+# Load bash completion if available
+if [ -f /usr/share/bash-completion/bash_completion ]; then
+  . /usr/share/bash-completion/bash_completion
+elif [ -f /etc/bash_completion ]; then
+  . /etc/bash_completion
+fi
+#+end_src
+
+** Zsh Completion
+
+#+begin_src zsh :tangle ~/.zshrc
+# Initialize zsh completion system
+autoload -Uz compinit && compinit
+
+# Use menu selection for completions
+zstyle ':completion:*' menu select
+zstyle ':completion:*' matcher-list 'm:{a-z}={A-Z}'  # Case-insensitive
+zstyle ':completion:*' list-colors "${(s.:.)LS_COLORS}"  # Colorize completions
+#+end_src
+
+---
+
+* Finalization
+
+Closing setup and verification.
+
+** Bash Finalization
+
+#+begin_src bash :tangle ~/.bashrc
+# Verify shell startup
+# echo "✓ .bashrc loaded"
+#+end_src
+
+** Zsh Finalization
+
+#+begin_src zsh :tangle ~/.zshrc
+# Verify shell startup
+# echo "✓ .zshrc loaded"
+#+end_src
+
+---
+
+* Reference & Maintenance
+
+** Quick Reference
+
+| Command | Effect |
+|---------+--------|
+| ~C-c C-v t~ | Tangle current org file (regenerate .bashrc & .zshrc) |
+| ~M-x org-babel-tangle-file~ | Tangle with file selection |
+| ~source ~/.bashrc~ | Reload bash configuration |
+| ~source ~/.zshrc~ | Reload zsh configuration |
+
+** Troubleshooting
+
+- **Changes not taking effect**: Run =C-c C-v t= to retangle, then reload your shell (~source ~/.bashrc~ or ~source ~/.zshrc~)
+- **Syntax errors after tangle**: Check the tangled output files (.bashrc/.zshrc) for the line numbers reported
+- **Org file won't tangle**: Ensure =org-babel-tangle= is available (it's built-in to modern Org)
+- **Losing manual edits**: Never edit .bashrc/.zshrc directly; always edit the .org file and retangle
+
+** Integration with Git
+
+Add to your dotfiles repo:
+
+#+begin_example
+# .gitignore
+.bashrc
+.zshrc
+*~
+#+end_example
+
+Then track only the org file:
+
+#+begin_example
+git add shellrc.org
+git commit -m "Update shell configuration"
+#+end_example
+
+---
+
+* Template Customization Guide
+
+To customize this template for your setup:
+
+1. **Add your own aliases**: Edit the "Aliases" section
+2. **Add your own functions**: Expand the "Functions" section
+3. **Modify paths**: Update the PATH exports in "Environment Variables"
+4. **Add tool-specific setup**: Create new sections for tools you use (Rust, Go, etc.)
+5. **Customize prompt**: Modify the "Prompt Configuration" section
+6. **Enable features gradually**: Start simple, add complexity as needed
+
+Each section is self-contained with noweb references, so it's easy to add or remove functionality.

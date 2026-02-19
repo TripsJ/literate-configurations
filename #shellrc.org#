@@ -1130,7 +1130,7 @@ alias qtile-logs="bat ~/.local/share/qtile/qtile.log"
 alias supermacs='emacs'
 alias debugemacs='ps aux | grep -ie emacs | grep -v grep | awk '{print $2}' | xargs kill -SIGUSR2'
 alias temacs='emacsclient -nw'
-# alias emacs='emacsclient -c -a ""' # Opens GUI, starts daemon if not running
+alias emacs='emacsclient -c -a ""' # Opens GUI, starts daemon if not running
 
 #Docker setups
 alias bitlbee-build="docker run -d -v ~/bitlbee/config:/var/lib/bitlbee -p 6667:6667 --name bitlbee bitlbee-discord" 

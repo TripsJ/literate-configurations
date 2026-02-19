@@ -1,0 +1,36 @@
+#+title: Shell Configuration (Bash & Zsh)
+#+author: Jérôme Trips
+#+property: header-args :tangle no :noweb no-export :results silent
+#+startup: overview
+
+* About this Configuration
+This file is part of an ongoing process to create literate configuration files in org mode.
+It is part of a Github repository located at ***insert github repo link***
+You are free to use modify and distribute this file as you wish, as long as you provide a link to the source matrerial on my github.
+
+This literate configuration maintains **files to be created** from a single Org file.
+Code is organized by topic, shared between files using noweb references, with file-specific blocks where needed.
+
+Structure:
+- *Shared* blocks: Used by all configs(aliases, functions, environment variables)
+- *Specific* blocks: file specific configurations (options, completion settings)
+
+To regenerate the configs, run:
+  =C-c C-v t= (in Emacs)
+  or =org-babel-tangle-file "filename.org"=
+
+** Key Org-Babel Concepts Used
+
+- =:tangle FILE= - specifies which file(s) to write the code block to
+- =:noweb yes= - enables noweb reference expansion (=<<ref-name>>=)
+- =#+name:= - labels a code block for noweb reference
+- =#+noweb-ref:= - attaches content to a named reference for inlining
+
+** File Generation Notes
+
+After editing this file, tangle with =C-c C-v t= to generate:
+
+The files will source this tangle output with their native sourcing mechanism.
+
+---
+
