@@ -5,7 +5,8 @@
 
 * About this Configuration
 This file is part of an ongoing process to create literate configuration files in org mode.
-It is part of a Github repository located at ***insert github repo link***
+It is part of a Github repository located at https://github.com/TripsJ/literate-configurations
+
 You are free to use modify and distribute this file as you wish, as long as you provide a link to the source matrerial on my github.
 
 This literate shell configuration maintains both Bash and Zsh from a single Org file.
