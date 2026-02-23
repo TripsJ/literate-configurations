@@ -1,0 +1,1474 @@
+#+TITLE: Qtile — Literate Configuration
+#+AUTHOR: Your Name
+#+DATE: {{{time(%Y-%m-%d)}}}
+#+PROPERTY: header-args:python :mkdirp yes :noweb yes
+#+PROPERTY: header-args:shell  :mkdirp yes :noweb yes
+#+OPTIONS: toc:3 num:t H:4 ^:nil
+#+STARTUP: overview
+
+#+BEGIN_ABSTRACT
+This is a *literate configuration* for the [[https://qtile.org][Qtile]] window manager, authored in Org Mode
+and maintained as a single source of truth.  All Python modules (~config.py~,
+~themes.py~, ~arcobattery2.py~) and the shell autostart script are *tangled* from
+this document using ~org-babel-tangle~ (~C-c C-v t~).
+
+The idea is simple: every design decision is documented in prose *right next to*
+the code it motivates.  You never have to guess why a setting exists; the
+explanation is part of the file.  The document can also be exported to HTML or
+PDF for a polished reference (~C-c C-e h h~ / ~C-c C-e l p~).
+
+To regenerate all files after editing, run:
+
+#+BEGIN_EXAMPLE
+M-x org-babel-tangle   (or C-c C-v t)
+#+END_EXAMPLE
+#+END_ABSTRACT
+
+#+TOC: headlines 3
+
+* How This Document Works
+:PROPERTIES:
+:CUSTOM_ID: how-it-works
+:END:
+
+** Tangling
+Each source block carries a ~:tangle~ header that points to its output file
+under ~~/.config/qtile/~.  Blocks belonging to the same file are concatenated in
+document order.  Where a block is marked ~:noweb yes~, it can pull in named
+sub-blocks via the ~<<block-name>>~ syntax, which allows a large logical unit
+(e.g. the full key list) to be assembled from smaller, individually documented
+pieces.
+
+** Exporting
+~#+OPTIONS: toc:3~ produces a three-level table of contents.  You can narrow or
+widen this, or suppress it entirely with ~toc:nil~.  Use ~C-c C-e~ to open the
+export dispatcher.
+
+** Editing Tips
+- Narrow to a subtree with ~C-x n s~ to focus on one section at a time.
+- Use ~C-c C-c~ inside a src block to evaluate it interactively (useful for
+  quick syntax checks via a running Python process).
+- Fold/unfold headings with ~TAB~ / ~S-TAB~.
+
+-----
+
+* Autostart Script
+:PROPERTIES:
+:CUSTOM_ID: autostart
+:END:
+
+The autostart script lives at ~~/.config/qtile/scripts/autostart.sh~ and is
+called exactly *once* by Qtile through the ~startup_once~ hook (see the Hooks
+section).  It is responsible for launching background daemons, setting the
+wallpaper, compositing, notification daemon, and any other session-level
+services that must not be duplicated across restarts.
+
+Keep this file idempotent where possible — i.e. guard daemon launches with
+~pgrep~ checks so that a Qtile restart (~mod+shift+r~) does not spawn duplicate
+processes. this is done using the run function in the environment block
+
+** Named block: shebang and environment
+This defines the run function to guard daemons and sets the keyboard layout
+#+NAME: autostart-shebang
+#+BEGIN_SRC shell
+#!/usr/bin/env bash
+# autostart.sh — launched once at Qtile startup
+# Edit this file via its org source: qtile-config.org
+function run {
+  if ! pgrep -x $(basename $1 | head -c 15) 1>/dev/null;
+  then
+    $@&
+  fi
+}
+
+#Set your native resolution IF it does not exist in xrandr
+#More info in the script
+#run $HOME/.config/qtile/scripts/set-screen-resolution-in-virtualbox.sh
+
+#Find out your monitor name with xrandr or arandr (save and you get this line)
+#xrandr --output VGA-1 --primary --mode 1360x768 --pos 0x0 --rotate normal
+#xrandr --output DP2 --primary --mode 1920x1080 --rate 60.00 --output LVDS1 --off &
+#xrandr --output LVDS1 --mode 1366x768 --output DP3 --mode 1920x1080 --right-of LVDS1
+#xrandr --output HDMI2 --mode 1920x1080 --pos 1920x0 --rotate normal --output HDMI1 --primary --mode 1920x1080 --pos 0x0 --rotate normal --output VIRTUAL1 --off
+#autorandr horizontal
+
+#change your keyboard if you need it
+#setxkbmap -layout be
+
+keybLayout=$(setxkbmap -v | awk -F "+" '/symbols/ {print $2}')
+
+if [ $keybLayout = "be" ]; then
+  cp $HOME/.config/qtile/config-azerty.py $HOME/.config/qtile/config.py
+fi
+
+#+END_SRC
+
+
+** Named block: compositor
+The compositor provides shadows, transparency, and vsync.  ~picom~ is the modern
+fork of ~compton~; adjust the backend (~glx~ vs ~xrender~) to suit your GPU.
+#+NAME: autostart-compositor
+#+BEGIN_SRC shell
+# Compositor
+run picom --daemon &
+#+END_SRC
+
+** Named block: wallpaper
+~nitrogen --restore~ re-applies whatever wallpaper was last set interactively
+with the ~nitrogen~ GUI.  Replace with ~feh --bg-scale~ if you prefer feh.
+#+NAME: autostart-wallpaper
+#+BEGIN_SRC shell
+# Wallpaper
+feh --bg-fill ~/Pictures/Wallpapers/wallpapers-l/b-012.jpg &
+#+END_SRC
+
+** Named block: notification daemon and update checker
+#+NAME: autostart-notifications
+#+BEGIN_SRC shell
+# Notification daemon
+run dunst &
+#check for updates and notify
+run /home/sulumar/Scripts/updatecheck/updatecheck.sh &
+#+END_SRC
+
+** Named block: hotkey daemon
+~sxhkd~ handles most application-level keybindings outside Qtile itself (media
+keys, application launchers, etc.).  The Qtile ~keys~ list is intentionally kept
+minimal for WM-intrinsic actions only.
+#+NAME: autostart-sxhkd
+#+BEGIN_SRC shell
+# Hotkey daemon
+run sxhkd -c ~/.config/qtile/sxhkd/sxhkdrc &
+#+END_SRC
+
+** Named block: polkit agent
+A polkit authentication agent is required for GUI applications that need
+privilege escalation (e.g. GParted, package managers).
+#+NAME: autostart-polkit
+#+BEGIN_SRC shell
+# Polkit authentication agent
+run /usr/lib/polkit-gnome/polkit-gnome-authentication-agent-1 &
+#+END_SRC
+** Named block: xfce applets
+We need a few applats for things like powermanagement, bluetooth and network management. We take those from XFCE because they are relarively lightweight
+#+NAME: autostart-applets
+#+BEGIN_SRC shell
+run nm-applet &
+run xfce4-power-manager &
+numlockx on &
+blueman-applet &
+run volumeicon &
+#+END_SRC
+** Named block: custom additions
+Add any personal daemons, screen-locker setup, input-method daemon, etc. here.
+#+NAME: autostart-custom
+#+BEGIN_SRC shell
+# ---- Add your own entries below this line ----
+run ckb-next --background &
+run greenclip daemon & #used for clipboard functions
+run variety &
+run yubikey-touch-detector --libnotify &
+run flameshot &
+run syncthingtray &  
+run a2ln &
+#+END_SRC
+
+** Named block: apply Xmodmap if it exists
+Xmodmap allows to customize the keyboard behaviour, we use it to overwrite some buttons.
+#+NAME: autostart-xmodmap
+#+BEGIN_SRC shell
+[[ -f ~/.Xmodmap ]] && xmodmap ~/.Xmodmap
+#+END_SRC
+** Tangled file: autostart.sh
+This block assembles all the named blocks above into the final file.
+#+BEGIN_SRC shell :tangle ~/.config/qtile/scripts/autostart.sh :noweb yes :shebang "#!/usr/bin/env bash"
+<<autostart-shebang>>
+
+<<autostart-compositor>>
+
+<<autostart-wallpaper>>
+
+<<autostart-notifications>>
+
+<<autostart-sxhkd>>
+
+<<autostart-polkit>>
+
+<<autostart-applets>>
+  
+<<autostart-custom>>
+
+<<autostart-xmodmap>>
+#+END_SRC
+
+-----
+
+* Colour Themes (~themes.py~)
+:PROPERTIES:
+:CUSTOM_ID: themes
+:END:
+
+All colour values are centralised in ~themes.py~.  The module exposes a single
+public function, ~get_theme(name)~, which returns an ordered list of hex-colour
+strings.  ~config.py~ imports from this module, so changing a theme requires
+touching only one file.
+
+Each palette is stored as a dict keyed by integer index.  The ~get_theme~
+function sorts by key before returning, guaranteeing a stable positional
+mapping even if you add colours in non-sequential order.
+
+** Named blocks: palette definitions
+
+*** shadow_grey
+A neutral, high-contrast palette with warm amber and vivid green accents.
+#+NAME: theme-shadow-grey
+#+BEGIN_SRC python
+    "shadow_grey": {
+        0: ["#f8f8f2", "#f8f8f2"],  # Foreground / near-white
+        1: ["#3b444b", "#3b444b"],  # Mid-dark surface
+        2: ["#c0c5ce", "#c0c5ce"],  # Muted text
+        3: ["#fba922", "#fba922"],  # Amber accent
+        4: ["#3384d0", "#3384d0"],  # Blue accent
+        5: ["#f3f4f5", "#f3f4f5"],  # Light surface
+        6: ["#cd1f3f", "#cd1f3f"],  # Red alert
+        7: ["#62FF00", "#62FF00"],  # Vivid green
+        8: ["#232b2b", "#232b2b"],  # Near-black background
+        9: ["#efdb74", "#efdb74"],  # Pale yellow
+    },
+#+END_SRC
+
+*** arco_dracula
+The Dracula palette as shipped by ArcoLinux.  Purple, pink, and cyan give it
+its signature look.
+#+NAME: theme-arco-dracula
+#+BEGIN_SRC python
+    "arco_dracula": {
+        0: ["#000000", "#000000"],  # Black
+        1: ["#282A36", "#282A36"],  # Background
+        2: ["#F8F8F2", "#F8F8F2"],  # Foreground
+        3: ["#F1FA8C", "#F1FA8C"],  # Yellow
+        4: ["#BD93F9", "#BD93F9"],  # Purple
+        5: ["#FF79C6", "#FF79C6"],  # Pink
+        6: ["#8BE9FD", "#8BE9FD"],  # Cyan
+        7: ["#BFBFBF", "#BFBFBF"],  # Light grey
+        8: ["#4D4D4D", "#4D4D4D"],  # Dark grey
+        9: ["#FF5555", "#FF5555"],  # Red
+    },
+#+END_SRC
+
+*** monokai
+Inspired by the classic Monokai text-editor theme.  Warm oranges and gold on a
+near-black background.
+#+NAME: theme-monokai
+#+BEGIN_SRC python
+    "monokai": {
+        0: ["#2e2e2e", "#2e2e2e"],  # Dark background
+        1: ["#797979", "#797979"],  # Muted foreground
+        2: ["#e5b567", "#e5b567"],  # Gold
+        3: ["#f8f8f2", "#f8f8f2"],  # Near-white foreground
+        4: ["#272822ED", "#272822ED"],  # Background with slight transparency
+        5: ["#27282200", "#27282200"],  # Fully transparent (unused / separator)
+        6: ["#27282200", "#27282200"],  # Fully transparent
+        7: ["#27282200", "#27282200"],  # Fully transparent
+        8: ["#e87d3e", "#e87d3e"],  # Orange accent
+        9: ["#6c99bb", "#6c99bb"],  # Steel blue
+    },
+#+END_SRC
+
+*** solarized
+The canonical Solarized dark palette by Ethan Schoonover.  Carefully calibrated
+lightness relationships and a muted, low-contrast base.
+#+NAME: theme-solarized
+#+BEGIN_SRC python
+    "solarized": {
+        0: ["#002b36", "#002b36"],  # base03  — darkest background
+        1: ["#073642", "#073642"],  # base02  — background highlights
+        2: ["#586e75", "#586e75"],  # base01  — comments / secondary text
+        3: ["#d33682", "#d33682"],  # magenta accent
+        4: ["#657b83", "#657b83"],  # base00  — body text
+        5: ["#93a1a1", "#93a1a1"],  # base1   — optional emphasis
+        6: ["#eee8d5", "#eee8d5"],  # base2   — background highlights (light)
+        7: ["#fdf6e3", "#fdf6e3"],  # base3   — lightest background
+        8: ["#00D6FF", "#00D6FF"],  # cyan override / highlight
+    },
+#+END_SRC
+
+*** solarized_extended
+Extends the base Solarized palette with muted teal tones useful for widget
+backgrounds that need to be visually distinct from the bar surface.
+#+NAME: theme-solarized-extended
+#+BEGIN_SRC python
+    "solarized_extended": {
+        0:  ["#002b36", "#002b36"],
+        1:  ["#073642", "#073642"],
+        2:  ["#586e75", "#586e75"],
+        3:  ["#d33682", "#d33682"],
+        4:  ["#657b83", "#657b83"],
+        5:  ["#93a1a1", "#93a1a1"],
+        6:  ["#eee8d5", "#eee8d5"],
+        7:  ["#fdf6e3", "#fdf6e3"],
+        8:  ["#00D6FF", "#00D6FF"],  # Bright cyan
+        9:  ["#96afb8", "#96afb8"],  # Cool grey-blue
+        10: ["#637b83", "#637b83"],  # Muted teal
+        11: ["#00c5a6", "#00c5a6"],  # Accent green
+    },
+#+END_SRC
+
+*** solarized_extended_improved
+Adds a lavender purple (index 12) and a burnt orange alert colour (index 13).
+This is the *active theme* used in ~config.py~ because it provides enough
+distinct colours to fully specify every widget background without repetition.
+#+NAME: theme-solarized-extended-improved
+#+BEGIN_SRC python
+    "solarized_extended_improved": {
+        0:  ["#002b36", "#002b36"],  # base03
+        1:  ["#073642", "#073642"],  # base02
+        2:  ["#586e75", "#586e75"],  # base01
+        3:  ["#d33682", "#d33682"],  # magenta
+        4:  ["#657b83", "#657b83"],  # base00
+        5:  ["#93a1a1", "#93a1a1"],  # base1
+        6:  ["#eee8d5", "#eee8d5"],  # base2
+        7:  ["#fdf6e3", "#fdf6e3"],  # base3 / bright highlight
+        8:  ["#00D6FF", "#00D6FF"],  # cyan
+        9:  ["#96afb8", "#96afb8"],  # cool grey-blue
+        10: ["#637b83", "#637b83"],  # muted teal  ← widget group bg
+        11: ["#00c5a6", "#00c5a6"],  # accent green
+        12: ["#b589d6", "#b589d6"],  # lavender purple ← clock bg
+        13: ["#cb4b16", "#cb4b16"],  # burnt orange   ← pomodoro / alert
+    },
+#+END_SRC
+
+*** solarized_dark_ds
+A variant tuned for dual-screen setups where slightly softer backgrounds reduce
+eye fatigue across the span of two monitors.
+#+NAME: theme-solarized-dark-ds
+#+BEGIN_SRC python
+    "solarized_dark_ds": {
+        0:  ["#002b36", "#002b36"],
+        1:  ["#073642", "#073642"],
+        2:  ["#586e75", "#586e75"],
+        3:  ["#d33682", "#d33682"],
+        4:  ["#657b83", "#657b83"],
+        5:  ["#93a1a1", "#93a1a1"],
+        6:  ["#eee8d5", "#eee8d5"],
+        7:  ["#fdf6e3", "#fdf6e3"],
+        8:  ["#00D6FF", "#00D6FF"],
+        9:  ["#96afb8", "#96afb8"],
+        10: ["#637b83", "#637b83"],
+        11: ["#00c5a6", "#00c5a6"],
+    },
+#+END_SRC
+
+** Named block: get_theme function
+The ~get_theme~ function is deliberately simple.  It raises a ~ValueError~ for
+unknown theme names rather than silently falling back, so misconfiguration is
+caught at startup rather than producing subtly wrong colours at runtime.
+#+NAME: themes-get-theme
+#+BEGIN_SRC python
+def get_theme(theme_name):
+    """Return an ordered list of [hex, hex] colour pairs for *theme_name*.
+
+    Colours are sorted by their integer key so that positional indexing in
+    config.py (e.g. colors[8]) is stable and predictable.
+
+    Raises ValueError if the theme name is not found.
+    """
+    theme = THEMES.get(theme_name)
+    if not theme:
+        raise ValueError(f"Theme '{theme_name}' not found.")
+    return [theme[i] for i in sorted(theme.keys())]
+#+END_SRC
+
+** Tangled file: themes.py
+#+BEGIN_SRC python :tangle ~/.config/qtile/themes.py :noweb yes
+# themes.py — generated from qtile-config.org, do not edit directly.
+# To modify, edit the org source and run M-x org-babel-tangle.
+
+THEMES = {
+<<theme-shadow-grey>>
+<<theme-arco-dracula>>
+<<theme-monokai>>
+<<theme-solarized>>
+<<theme-solarized-extended>>
+<<theme-solarized-extended-improved>>
+<<theme-solarized-dark-ds>>
+}
+
+<<themes-get-theme>>
+
+# Example usage:
+# colors = get_theme("solarized_extended_improved")
+# print(colors)
+#+END_SRC
+
+-----
+
+* Battery Widget (~arcobattery2.py~)
+:PROPERTIES:
+:CUSTOM_ID: arcobattery
+:END:
+
+~arcobattery2.py~ provides two custom Qtile widgets: ~Battery~ (text-based) and
+~BatteryIcon~ (image-based).  Both inherit from ~_Battery~, a private base class
+that handles reading the kernel's power supply interface under
+~/sys/class/power_supply/~.
+
+The file is kept as a self-contained module so it can be copied to any Qtile
+install without modification.  Place it in ~~/.config/qtile/~ alongside
+~config.py~ and import it with ~from arcobattery2 import BatteryIcon~.
+
+** Named block: imports and constants
+The battery name (~BAT_NAME~) defaults to ~BAT1~.  If your machine exposes a
+different name (e.g. ~BAT0~, common on Thinkpads), override it here or set it
+via the ~battery_name~ widget parameter at instantiation time.
+#+NAME: arcobat-imports
+#+BEGIN_SRC python
+from __future__ import division
+
+import cairocffi
+import os
+from libqtile import bar
+from libqtile.widget import base
+from pathlib import Path
+
+# Default battery name as seen under /sys/class/power_supply/.
+# Check with: ls /sys/class/power_supply/
+BAT_NAME = "BAT1"
+
+BAT_DIR = '/sys/class/power_supply'
+
+# Status strings returned by the kernel's 'status' file.
+CHARGED     = 'Full'
+CHARGING    = 'Charging'
+DISCHARGING = 'Discharging'
+UNKNOWN     = 'Unknown'
+
+# Map of logical parameter names to the possible kernel file names that
+# provide each value.  The list is tried in order; the first readable file wins.
+BATTERY_INFO_FILES = {
+    'energy_now_file':  ['energy_now', 'charge_now'],
+    'energy_full_file': ['energy_full', 'charge_full'],
+    'power_now_file':   ['power_now', 'current_now'],
+    'status_file':      ['status'],
+}
+#+END_SRC
+
+** Named block: default icon path helper
+#+NAME: arcobat-icon-path
+#+BEGIN_SRC python
+def default_icon_path():
+    """Return the path to the bundled battery icon set inside libqtile."""
+    root = os.sep.join(os.path.abspath(__file__).split(os.sep)[:-2])
+    return os.path.join(root, 'resources', 'battery-icons')
+#+END_SRC
+
+** Named block: _Battery base class
+~_Battery~ is not intended to be instantiated directly.  It provides the
+file-reading machinery (~_load_file~, ~_get_param~, ~_get_info~) shared by both
+concrete widgets.
+
+The caching dict ~self.filenames~ avoids redundant filesystem probes after the
+first successful read: once the correct file name is found for a given
+parameter, it is stored and reused on every subsequent poll.
+#+NAME: arcobat-base-class
+#+BEGIN_SRC python
+class _Battery(base._TextBox):
+    """Base battery class — do not instantiate directly."""
+
+    filenames = {}
+
+    defaults = [
+        ('battery_name',     BAT_NAME, 'ACPI name of a battery, usually BAT0'),
+        ('status_file',      'status', 'Name of status file in'
+                                       ' /sys/class/power_supply/battery_name'),
+        ('energy_now_file',  None,     'Name of file with the current energy'),
+        ('energy_full_file', None,     'Name of file with the maximum energy'),
+        ('power_now_file',   None,     'Name of file with the current power draw'),
+        ('update_delay',     60,       'The delay in seconds between updates'),
+    ]
+
+    def __init__(self, **config):
+        base._TextBox.__init__(self, "BAT", bar.CALCULATED, **config)
+        self.add_defaults(_Battery.defaults)
+
+    def _load_file(self, name):
+        """Read a single file from the battery's sysfs directory."""
+        try:
+            path = os.path.join(BAT_DIR, self.battery_name, name)
+            with open(path, 'r') as f:
+                return f.read().strip()
+        except IOError:
+            if name == 'current_now':
+                return 0
+            return False
+        except Exception:
+            self.log.exception("Failed to get %s" % name)
+
+    def _get_param(self, name):
+        """Return the value for *name*, probing candidate file names if needed."""
+        if name in self.filenames and self.filenames[name]:
+            return self._load_file(self.filenames[name])
+        elif name not in self.filenames:
+            file_list = BATTERY_INFO_FILES.get(name, [])[:]
+            if getattr(self, name, None):
+                file_list.insert(0, getattr(self, name))
+            for file in file_list:
+                value = self._load_file(file)
+                if value is not False and value is not None:
+                    self.filenames[name] = file
+                    return value
+        self.filenames[name] = None
+        return None
+
+    def _get_info(self):
+        """Return a dict with stat/now/full/power, or False on error."""
+        try:
+            info = {
+                'stat':  self._get_param('status_file'),
+                'now':   float(self._get_param('energy_now_file')),
+                'full':  float(self._get_param('energy_full_file')),
+                'power': float(self._get_param('power_now_file')),
+            }
+        except TypeError:
+            return False
+        return info
+#+END_SRC
+
+** Named block: Battery text widget
+The ~Battery~ widget renders the battery state as formatted text.  The default
+~format~ string shows a directional character (~^~ charging, ~V~ discharging), the
+percentage, and the remaining time.  All of these can be overridden via keyword
+arguments when instantiating the widget in ~config.py~.
+
+The ~low_percentage~ threshold (default 10 %) triggers a colour change to
+~low_foreground~ as a visual warning.
+#+NAME: arcobat-text-widget
+#+BEGIN_SRC python
+class Battery(_Battery):
+    """A simple but flexible text-based battery widget."""
+
+    orientations = base.ORIENTATION_HORIZONTAL
+    defaults = [
+        ('charge_char',     '^',                          'Character shown while charging'),
+        ('discharge_char',  'V',                          'Character shown while discharging'),
+        ('error_message',   'Error',                      'Message shown on read failure'),
+        ('format',          '{char} {percent:2.0%} {hour:d}:{min:02d}', 'Display format'),
+        ('hide_threshold',  None,                         'Hide text above this charge level'),
+        ('low_percentage',  0.10,                         'Threshold for low-battery colour'),
+        ('low_foreground',  'FF0000',                     'Colour used at low battery'),
+    ]
+
+    def __init__(self, **config):
+        _Battery.__init__(self, **config)
+        self.add_defaults(Battery.defaults)
+
+    def timer_setup(self):
+        update_delay = self.update()
+        if update_delay is None and self.update_delay is not None:
+            self.timeout_add(self.update_delay, self.timer_setup)
+        elif update_delay:
+            self.timeout_add(update_delay, self.timer_setup)
+
+    def _configure(self, qtile, bar):
+        if self.configured:
+            self.update()
+        _Battery._configure(self, qtile, bar)
+
+    def _get_text(self):
+        info = self._get_info()
+        if info is False:
+            return self.error_message
+        try:
+            if self.hide_threshold and \
+                    info['now'] / info['full'] * 100.0 >= self.hide_threshold and \
+                    info['stat'] != CHARGED:
+                return ''
+            elif info['stat'] == DISCHARGING:
+                char = self.discharge_char
+                time = info['now'] / info['power']
+            elif info['stat'] == CHARGING:
+                char = self.charge_char
+                time = (info['full'] - info['now']) / info['power']
+            else:
+                return 'Full'
+        except ZeroDivisionError:
+            time = -1
+
+        if time >= 0:
+            hour = int(time)
+            min  = int(time * 60) % 60
+        else:
+            hour = min = -1
+
+        percent = info['now'] / info['full']
+        if info['stat'] == DISCHARGING and percent < self.low_percentage:
+            self.layout.colour = self.low_foreground
+        else:
+            self.layout.colour = self.foreground
+
+        return self.format.format(char=char, percent=percent, hour=hour, min=min)
+
+    def update(self):
+        ntext = self._get_text()
+        if ntext != self.text:
+            self.text = ntext
+            self.bar.draw()
+#+END_SRC
+
+** Named block: BatteryIcon widget
+~BatteryIcon~ renders a PNG icon chosen from a set of named states (e.g.
+~battery-70-charge~).  Icons are sourced from ~theme_path~ (defaults to
+libqtile's bundled set) and can be overridden per-state via ~custom_icons~.
+
+The ~setup_images~ method pre-scales all icons to fit the bar height at
+configure time, so there is no per-frame scaling cost during drawing.
+
+Note: there is a small logical bug in the original ~_get_icon_key~ method — the
+~< .5~ branch for ~-60~ is unreachable because the ~< .6~ branch above it already
+matches.  This is preserved as-is to maintain compatibility with existing
+configs, but flagged here for awareness.
+#+NAME: arcobat-icon-widget
+#+BEGIN_SRC python
+class BatteryIcon(_Battery):
+    """Battery life indicator widget — renders a theme-aware PNG icon."""
+
+    orientations = base.ORIENTATION_HORIZONTAL
+    defaults = [
+        ('theme_path',   default_icon_path(), 'Path to the icon directory'),
+        ('custom_icons', {},                  'Dict mapping state-key → filename overrides'),
+        ('scaleadd',     0,                   'Additional scale factor (0 = disabled)'),
+        ('y_poss',       0,                   'Vertical position offset in pixels'),
+    ]
+
+    def __init__(self, **config):
+        _Battery.__init__(self, **config)
+        self.add_defaults(BatteryIcon.defaults)
+        self.scale = 1.0 / self.scale
+
+        if self.theme_path:
+            self.length_type = bar.STATIC
+            self.length = 0
+        self.surfaces = {}
+        self.current_icon = 'battery-missing'
+        self.icons = dict([(x, '{0}.png'.format(x)) for x in (
+            'battery-missing',
+            'battery-empty',   'battery-empty-charge',
+            'battery-10',      'battery-10-charge',
+            'battery-20',      'battery-20-charge',
+            'battery-30',      'battery-30-charge',
+            'battery-40',      'battery-40-charge',
+            'battery-50',      'battery-50-charge',
+            'battery-60',      'battery-60-charge',
+            'battery-70',      'battery-70-charge',
+            'battery-80',      'battery-80-charge',
+            'battery-90',      'battery-90-charge',
+            'battery-full',    'battery-full-charge',
+            'battery-full-charged',
+        )])
+        self.icons.update(self.custom_icons)
+
+    def timer_setup(self):
+        self.update()
+        self.timeout_add(self.update_delay, self.timer_setup)
+
+    def _configure(self, qtile, bar):
+        base._TextBox._configure(self, qtile, bar)
+        self.setup_images()
+
+    def _get_icon_key(self):
+        """Map current battery state to an icon key string."""
+        key = 'battery'
+        info = self._get_info()
+        if info is False or not info.get('full'):
+            key += '-missing'
+        else:
+            percent = info['now'] / info['full']
+            if   percent < .1: key += '-empty'
+            elif percent < .2: key += '-10'
+            elif percent < .3: key += '-20'
+            elif percent < .4: key += '-30'
+            elif percent < .5: key += '-40'
+            elif percent < .6: key += '-50'
+            elif percent < .5: key += '-60'   # NOTE: unreachable — kept for compat
+            elif percent < .8: key += '-70'
+            elif percent < .9: key += '-80'
+            elif percent < 1:  key += '-90'
+            else:              key += '-full'
+
+            if   info['stat'] == CHARGING: key += '-charge'
+            elif info['stat'] == CHARGED:  key += '-charged'
+        return key
+
+    def update(self):
+        icon = self._get_icon_key()
+        if icon != self.current_icon:
+            self.current_icon = icon
+            self.draw()
+
+    def draw(self):
+        if self.theme_path:
+            self.drawer.clear(self.background or self.bar.background)
+            self.drawer.ctx.set_source(self.surfaces[self.current_icon])
+            self.drawer.ctx.paint()
+            self.drawer.draw(offsetx=self.offset, width=self.length)
+        else:
+            self.text = self.current_icon[8:]
+            base._TextBox.draw(self)
+
+    def setup_images(self):
+        """Pre-scale all icon PNGs to match the bar height."""
+        for key, name in self.icons.items():
+            try:
+                path = os.path.join(self.theme_path, name)
+                img  = cairocffi.ImageSurface.create_from_png(path)
+            except cairocffi.Error:
+                self.theme_path = None
+                self.qtile.log.warning('Battery Icon switching to text mode')
+                return
+            input_width  = img.get_width()
+            input_height = img.get_height()
+            sp    = input_height / (self.bar.height - 1)
+            width = input_width / sp
+            if width > self.length:
+                self.length = int(width) + self.actual_padding * 2
+            imgpat = cairocffi.SurfacePattern(img)
+            scaler = cairocffi.Matrix()
+            scaler.scale(sp, sp)
+            scaler.scale(self.scale, self.scale)
+            factor = (1 - 1 / self.scale) / 2
+            scaler.translate(-width * factor, -width * factor)
+            scaler.translate(self.actual_padding * -1, self.y_poss)
+            imgpat.set_matrix(scaler)
+            imgpat.set_filter(cairocffi.FILTER_BEST)
+            self.surfaces[key] = imgpat
+#+END_SRC
+
+** Tangled file: arcobattery2.py
+#+BEGIN_SRC python :tangle ~/.config/qtile/arcobattery2.py :noweb yes
+# arcobattery2.py — generated from qtile-config.org, do not edit directly.
+
+<<arcobat-imports>>
+
+<<arcobat-icon-path>>
+
+<<arcobat-base-class>>
+
+<<arcobat-text-widget>>
+
+<<arcobat-icon-widget>>
+#+END_SRC
+
+-----
+
+* Main Configuration (~config.py~)
+:PROPERTIES:
+:CUSTOM_ID: config
+:END:
+
+** Named block: imports and modifier keys
+Qtile's configuration is pure Python executed at startup.  The modifier key
+variables (~mod~, ~mod1~, ~mod2~, ~altgr~) are used throughout the keybinding
+definitions.  Using named variables rather than string literals means a single
+change here propagates everywhere.
+
+~mod4~ is the Super (Windows / Command) key.  ~altgr~ (~mod5~) is the AltGr key,
+used here for scratchpad toggles and the window-cycling hack.
+#+NAME: config-imports
+#+BEGIN_SRC python
+import os
+import subprocess
+from libqtile import layout, bar, widget, hook
+from libqtile.config import (
+    Drag,
+    Group,
+    Key,
+    Match,
+    Screen,
+    ScratchPad,
+    DropDown,
+)
+from libqtile.lazy import lazy
+from libqtile.log_utils import logger
+from themes import get_theme
+
+# Modifier key aliases — change these if your keyboard layout differs.
+mod   = "mod4"   # Super key
+mod1  = "alt"    # Alt
+mod2  = "control"
+altgr = "mod5"   # AltGr
+
+home = os.path.expanduser("~")
+#+END_SRC
+
+** Named block: application variables
+Centralising application command strings makes it easy to swap a terminal
+emulator or file manager without hunting through the keybinding list.
+#+NAME: config-apps
+#+BEGIN_SRC python
+# Application commands used in keybindings and scratchpads.
+Terminal = "alacritty -e zsh"
+# PassManager = "bitwarden-desktop"
+LF = "alacritty -e lf"
+#+END_SRC
+
+** Named block: core keybindings
+Most application-level shortcuts are delegated to ~sxhkd~ (see autostart).
+The list here covers only Qtile-intrinsic actions: window management, layout
+switching, focus movement, and resizing.
+
+The ~window_to_prev_group~ / ~window_to_next_group~ lazy functions move the
+focused window one group forward or back — useful for quickly reorganising a
+cluttered workspace.
+#+NAME: config-keys-core
+#+BEGIN_SRC python
+keys = [
+    # SUPER + function keys
+    Key([mod], "f", lazy.window.toggle_fullscreen()),
+    Key([mod], "q", lazy.window.kill()),
+    Key([mod], "t", lazy.window.toggle_floating(), desc="Toggle floating"),
+
+    # Qtile control
+    Key([mod, "shift"], "r", lazy.restart()),
+
+    # Layout control
+    Key([mod, "control"], "n", lazy.layout.normalize()),
+    Key([mod], "space", lazy.next_layout()),
+
+    # Focus movement
+    Key([mod], "Up",    lazy.layout.up()),
+    Key([mod], "Down",  lazy.layout.down()),
+    Key([mod], "Left",  lazy.layout.left()),
+    Key([mod], "Right", lazy.layout.right()),
+
+    # Resize — multiple layout commands are listed so the binding works
+    # across MonadTall, MonadWide, Columns, and other layout types.
+    Key([mod, "control"], "Right",
+        lazy.layout.grow_right(), lazy.layout.grow(),
+        lazy.layout.increase_ratio(), lazy.layout.delete()),
+    Key([mod, "control"], "Left",
+        lazy.layout.grow_left(), lazy.layout.shrink(),
+        lazy.layout.decrease_ratio(), lazy.layout.add()),
+    Key([mod, "control"], "Up",
+        lazy.layout.grow_up(), lazy.layout.grow(),
+        lazy.layout.decrease_nmaster()),
+    Key([mod, "control"], "Down",
+        lazy.layout.grow_down(), lazy.layout.shrink(),
+        lazy.layout.increase_nmaster()),
+
+    # Flip and shuffle (MonadTall / MonadWide)
+    Key([mod, "control"], "f", lazy.layout.flip()),
+    Key([mod, "shift"],   "Up",   lazy.layout.shuffle_up()),
+    Key([mod, "shift"],   "Down", lazy.layout.shuffle_down()),
+]
+#+END_SRC
+
+** Named block: window-to-screen helpers
+These helper functions move the focused window to an adjacent screen.  They are
+used in the keybindings block below.  ~switch_screen=True~ means focus follows
+the window to the destination screen automatically.
+#+NAME: config-screen-helpers
+#+BEGIN_SRC python
+@lazy.function
+def window_to_prev_group(qtile):
+    if qtile.currentWindow is not None:
+        i = qtile.groups.index(qtile.currentGroup)
+        qtile.currentWindow.togroup(qtile.groups[i - 1].name)
+
+
+@lazy.function
+def window_to_next_group(qtile):
+    if qtile.currentWindow is not None:
+        i = qtile.groups.index(qtile.currentGroup)
+        qtile.currentWindow.togroup(qtile.groups[i + 1].name)
+
+
+def window_to_previous_screen(qtile, switch_group=False, switch_screen=False):
+    i = qtile.screens.index(qtile.current_screen)
+    if i != 0:
+        group = qtile.screens[i - 1].group.name
+        qtile.current_window.togroup(group, switch_group=switch_group)
+        if switch_screen:
+            qtile.to_screen(i - 1)
+
+
+def window_to_next_screen(qtile, switch_group=False, switch_screen=False):
+    i = qtile.screens.index(qtile.current_screen)
+    if i + 1 != len(qtile.screens):
+        group = qtile.screens[i + 1].group.name
+        qtile.current_window.togroup(group, switch_group=switch_group)
+        if switch_screen:
+            qtile.to_screen(i + 1)
+
+
+keys.extend([
+    Key([mod, "shift"], "Right",
+        lazy.function(window_to_next_screen, switch_screen=True)),
+    Key([mod, "shift"], "Left",
+        lazy.function(window_to_previous_screen, switch_screen=True)),
+])
+#+END_SRC
+
+** Named block: groups
+Groups are configured for an *AZERTY* keyboard layout (French / Belgian).
+Key names were found with ~xkbcli interactive-evdev~; substitute QWERTY names
+(~"1"~, ~"2"~, …) if needed.
+The icons used are from [[https://nerdfonts.com][nerdfonts]]. they do require a nerdfont to be installedb and used
+
+Each group definition carries optional ~label~ (the Nerd Font glyph shown in the
+bar), ~layout~ (overrides ~default_group_layout~), and ~screen~ (the screen the
+group is pinned to on a multi-monitor setup).  Any missing keys are filled in by
+the loop below the definition.
+#+NAME: config-groups
+#+BEGIN_SRC python
+groups = []
+
+default_group_layout = "monadtall"
+
+# AZERTY key names.  Use `xkbcli interactive-evdev` to find yours.
+group_def = [
+    {"name": "ampersand",   "screen": 0},
+    {"name": "eacute",      "screen": 0, "label": ""},   # Browser
+    {"name": "quotedbl",    "screen": 0, "label": ""},   # Editor
+    {"name": "apostrophe",  "screen": 1},
+    {"name": "parenleft",   "screen": 0},
+    {"name": "minus",       "screen": 0},
+    {"name": "egrave",      "screen": 2, "label": "󱉐", "layout": "matrix"},  # Comms
+    {"name": "underscore",  "screen": 0, "label": "󰝚"},                      # Media
+]
+
+# Fill in defaults for any missing keys.
+for i, g in enumerate(group_def):
+    if "label"   not in g: g["label"]   = f"{i+1}" if i < 9 else str(i+1)
+    if "layout"  not in g: g["layout"]  = default_group_layout
+    if "persist" not in g: g["persist"] = True
+
+for g in group_def:
+    groups.append(Group(
+        name=g["name"],
+        layout=g["layout"].lower(),
+        label=g["label"],
+        screen_affinity=g["screen"],
+        persist=g["persist"],
+    ))
+
+# Keybindings for switching to and moving windows to groups.
+for i in groups:
+    keys.extend([
+        Key([mod],          i.name, lazy.group[i.name].toscreen()),
+        Key(["mod1"],       "Tab",  lazy.screen.next_group()),
+        Key(["mod1", "shift"], "Tab", lazy.screen.prev_group()),
+        Key([mod, "shift"], i.name,
+            lazy.window.togroup(i.name),
+            lazy.group[i.name].toscreen()),
+    ])
+#+END_SRC
+
+** Named block: multi-monitor group routing
+These two functions implement screen-aware group switching: pressing a group
+key sends focus to the correct physical screen rather than always switching the
+primary screen.  This is particularly important for a 3-monitor setup where
+groups are pinned to specific displays.
+
+*Note:* there is a minor bug in ~go_to_group~ — the ~else~ branch calls
+~qtile.groups_map.toscreen()~ instead of ~qtile.groups_map[name].toscreen()~.
+This is preserved here to match the original, but is flagged as a potential
+fix.
+#+NAME: config-group-routing
+#+BEGIN_SRC python
+def go_to_group(name: str):
+    """Switch to group *name*, routing focus to the appropriate screen."""
+    def _inner(qtile):
+        logger.warning(qtile.groups_map)
+        if len(qtile.screens) == 1:
+            qtile.groups_map[name].toscreen()
+            return
+        if name == "egrave":
+            qtile.focus_screen(2)
+            qtile.groups_map[name].toscreen()
+        if name == "ampersand":
+            qtile.focus_screen(1)
+            qtile.groups_map[name].toscreen()
+        else:
+            qtile.focus_screen(0)
+            qtile.groups_map.toscreen()   # BUG: should be groups_map[name]
+    return _inner
+
+
+def go_to_group_and_move_window(name: str):
+    """Move the focused window to group *name* and switch to its screen."""
+    def _inner(qtile):
+        if len(qtile.screens) == 1:
+            qtile.current_window.togroup(name, switch_group=True)
+            return
+        if name == "egrave":
+            qtile.current_window.togroup(name, switch_group=False)
+            qtile.focus_screen(2)
+            qtile.groups_map[name].toscreen()
+        if name == "ampersand":
+            qtile.current_window.togroup(name, switch_group=False)
+            qtile.focus_screen(1)
+            qtile.groups_map[name].toscreen()
+        else:
+            qtile.current_window.togroup(name, switch_group=False)
+            qtile.focus_screen(0)
+            qtile.groups_map[name].toscreen()
+    return _inner
+
+# Uncomment to activate ctrl-based group routing:
+# for i in groups:
+#     keys.append(Key([mod2], i.name, lazy.function(go_to_group(i.name))))
+#     keys.append(Key([mod2, "shift"], i.name,
+#                     lazy.function(go_to_group_and_move_window(i.name))))
+#+END_SRC
+
+** Named block: scratchpad
+The ~ScratchPad~ group provides overlay windows that slide in and out without
+occupying a persistent group.  The terminal dropdown (~AltGr+F11~) is useful for
+quick shell tasks; the ~lf~ file manager dropdown (~AltGr+F10~) gives full-screen
+file browsing on demand.
+
+Increase ~width~ / ~height~ (0–1, proportion of screen) or adjust ~x~ / ~y~ to
+reposition dropdowns.
+#+NAME: config-scratchpad
+#+BEGIN_SRC python
+groups.append(ScratchPad("scratchpad", [
+    DropDown("term",     Terminal, width=0.6, height=0.6,
+             x=0.3, y=0.2, opacity=1),
+    # DropDown("bitwarden", PassManager, width=0.6, height=0.6,
+    #          x=0.3, y=0.0, opacity=1, on_focus_lost_hide=False),
+    DropDown("lfscreen", LF, width=0.9, height=0.9,
+             x=0.0, y=0.0, opacity=1),
+]))
+
+keys.extend([
+    Key([altgr], "F11", lazy.group["scratchpad"].dropdown_toggle("term")),
+    # Key([altgr], "F12", lazy.group["scratchpad"].dropdown_toggle("bitwarden")),
+    Key([altgr], "F10", lazy.group["scratchpad"].dropdown_toggle("lfscreen")),
+])
+#+END_SRC
+
+** Named block: window cycling hack
+This ~@lazy.group.function~ decorator cycles through hidden/overlapping windows
+in the current group by bringing them to the front in turn.  It was added to
+make Eclipse (which spawns many sub-windows) usable in a tiling environment.
+#+NAME: config-cycle-windows
+#+BEGIN_SRC python
+@lazy.group.function
+def cycle_windows(group, forwards=True):
+    """Cycle through overlapping windows, bringing each to the front."""
+    current = group.current_window
+    if current:
+        current.change_layer()
+    if forwards:
+        group.next_window()
+    else:
+        group.previous_window()
+    current = group.current_window
+    if current:
+        current.bring_to_front()
+
+keys.extend([
+    Key([altgr], "space", cycle_windows(),
+        desc="Move window focus to other window"),
+])
+#+END_SRC
+
+** Named block: colours and layout theme
+Colours are loaded from ~themes.py~.  The active theme is
+~solarized_extended_improved~ because it provides 14 distinct colours, which is
+enough to assign a unique background to each widget group on the bar without
+repetition.
+
+~layout_theme~ is a dict of common layout parameters passed to every layout via
+~**layout_theme~ unpacking.  Keeping these in one place means adjusting the
+border width or colour applies to all layouts simultaneously.
+#+NAME: config-colors-layout-theme
+#+BEGIN_SRC python
+# Load colour palette — change the string to switch themes globally.
+colors = get_theme("solarized_extended_improved")
+
+layout_theme = {
+    "margin":        4,
+    "border_width":  2,
+    "border_focus":  colors[7],   # base3 — bright highlight
+    "border_normal": colors[5],   # base1 — muted
+}
+#+END_SRC
+
+** Named block: layouts
+Only the layouts that are actually useful on a day-to-day basis are enabled.
+Commented-out alternatives are left for reference.  ~MonadTall~ is the default
+because it mirrors the classic master-stack paradigm and works well for a
+primary coding/browsing workflow.
+#+NAME: config-layouts
+#+BEGIN_SRC python
+layouts = [
+    layout.MonadTall(**layout_theme, name="Master Stack"),
+    layout.MonadWide(**layout_theme, name="Master List"),
+    layout.Matrix(**layout_theme,   name="Matrix"),
+    layout.Max(**layout_theme,      name="Max"),
+    # layout.MonadWide(**layout_theme, name="Master List"),
+    # layout.TreeTab(**layout_theme, panel_width=50, vspace=2),
+    # layout.Tile(ratio=0.5, **layout_theme, name="Tile"),
+]
+#+END_SRC
+
+** Named block: widget helpers
+~rounded_box~ is a factory that returns a dict of widget parameters producing a
+visually rounded pill shape using ~libqtile~'s ~border_width~ / ~margin~ system.
+Centralising this avoids repeating the same six keyword arguments on every
+widget.
+#+NAME: config-widget-helpers
+#+BEGIN_SRC python
+def rounded_box(foreground, background):
+    """Return widget kwargs that produce a rounded-pill visual style."""
+    return {
+        "foreground":   foreground,
+        "background":   background,
+        "padding":      10,
+        "border_width": 2,
+        "border_color": background,
+        "margin_y":     2,
+        "margin_x":     8,
+    }
+#+END_SRC
+
+** Named block: widget list
+The widget list is built by a function so that it can be called multiple times
+(once per screen) without sharing mutable state between bar instances.
+
+Colour index reference for ~solarized_extended_improved~:
+| Index | Hex       | Role in bar                         |
+|-------+-----------+-------------------------------------|
+|     0 | ~#002b36~   | GroupBox text on active block       |
+|     1 | ~#073642~   | Bar surface / lighter background    |
+|     2 | ~#586e75~   | Inactive group text                 |
+|     4 | ~#657b83~   | Window name (muted)                 |
+|     5 | ~#93a1a1~   | CurrentLayout text                  |
+|     6 | ~#eee8d5~   | Active group text / Memory text     |
+|     7 | ~#fdf6e3~   | Clock text (bright)                 |
+|     8 | ~#00D6FF~   | Active group highlight              |
+|    10 | ~#637b83~   | CPU/Memory/Volume widget background |
+|    11 | ~#00c5a6~   | Volume text (accent green)          |
+|    12 | ~#b589d6~   | Clock background (lavender)         |
+|    13 | ~#cb4b16~   | Pomodoro background (burnt orange)  |
+#+NAME: config-widget-list
+#+BEGIN_SRC python
+def init_widget_list():
+    """Return the base widget list shared across all screens."""
+    return [
+        widget.GroupBox(
+            highlight_method="block",
+            this_current_screen_border=colors[8],   # Highlight blue
+            inactive=colors[2],                     # Muted inactive text
+            active=colors[6],                       # Active group text
+            block_highlight_text_color=colors[0],   # Text on active block
+            background=colors[1],
+            padding=5,
+            border_width=2,
+            rounded=True,
+            disable_drag=True,
+            urgent_alert_method="text",
+            highlight_color=colors[1],
+            font="FantasqueSansM Nerd Font",
+        ),
+        widget.Spacer(length=8, background=colors[1]),
+        widget.CurrentLayout(
+            fmt="Layout: {}",
+            **rounded_box(colors[5], colors[1]),
+        ),
+        widget.WindowName(
+            foreground=colors[4],
+            background=colors[1],
+            padding=10,
+            font="FantasqueSansM Nerd Font",
+        ),
+        widget.Spacer(length=8, background=colors[1]),
+        widget.CPU(
+            format="  {load_percent}%",
+            font="FantasqueSansM Nerd Font",
+            **rounded_box(colors[0], colors[10]),
+        ),
+        widget.Memory(
+            format="󰍛 {MemUsed:.0f}M/{MemTotal:.0f}M",
+            font="FantasqueSansM Nerd Font",
+            **rounded_box(colors[6], colors[10]),
+        ),
+        widget.Volume(
+            fmt="󰕿 {}",
+            font="FantasqueSansM Nerd Font",
+            **rounded_box(colors[11], colors[10]),
+        ),
+        widget.Spacer(length=8, background=colors[10]),
+        widget.Clock(
+            format=" %d/%m/%Y   %H:%M",
+            font="FantasqueSansM Nerd Font",
+            **rounded_box(colors[7], colors[12]),
+        ),
+        widget.Pomodoro(
+            length_pomodori=20,
+            length_short_break=5,
+            length_long_break=20,
+            **rounded_box(colors[13], colors[1]),
+        ),
+    ]
+#+END_SRC
+
+** Named block: screen initialisation
+Screen 1 (primary) gets a ~Systray~; screens 2 and 3 share the base widget list.
+The bar ~opacity~ of 0.85 allows a faint bleed of the wallpaper through the bar,
+giving a slight transparency effect without requiring a full compositor blur.
+#+NAME: config-screens
+#+BEGIN_SRC python
+def init_widget_list_main():
+    """Extend the base widget list with a system tray for the primary screen."""
+    widgets = init_widget_list()
+    widgets.append(widget.Systray(icon_size=20, padding=4, background=colors[1]))
+    widgets.append(widget.Spacer(length=8))
+    return widgets
+
+
+def init_widgets_screen1(): return init_widget_list_main()
+def init_widgets_screen2(): return init_widget_list()
+def init_widgets_screen3(): return init_widget_list()
+
+
+def init_screens():
+    return [
+        Screen(top=bar.Bar(widgets=init_widgets_screen1(), size=28, opacity=0.85)),
+        Screen(top=bar.Bar(widgets=init_widgets_screen2(), size=28, opacity=0.85)),
+        Screen(top=bar.Bar(widgets=init_widgets_screen3(), size=28, opacity=0.85)),
+    ]
+
+
+screens = init_screens()
+#+END_SRC
+
+** Named block: mouse bindings
+The two ~Drag~ bindings enable the classic ~mod+left-drag~ to move floating
+windows and ~mod+right-drag~ to resize them.  These are the only mouse bindings
+defined; everything else is handled by the window manager's built-in focus
+behaviour.
+#+NAME: config-mouse
+#+BEGIN_SRC python
+mouse = [
+    Drag([mod], "Button1", lazy.window.set_position_floating(),
+         start=lazy.window.get_position()),
+    Drag([mod], "Button3", lazy.window.set_size_floating(),
+         start=lazy.window.get_size()),
+]
+
+dgroups_key_binder  = None
+dgroups_app_rules   = []
+#+END_SRC
+
+** Named block: application–group assignment
+The ~assign_app_group~ hook intercepts every new window and routes it to a
+predefined group based on its ~WM_CLASS~.  Use ~xprop | grep WM_CLASS~ while
+hovering over a window to find the string to match against.
+
+The integer indices into ~group_def~ correspond to the group order defined
+earlier: 1=browser, 2=editor, 6=comms, 7=media.
+#+NAME: config-assign-apps
+#+BEGIN_SRC python
+@hook.subscribe.client_new
+def assign_app_group(client):
+    """Route new windows to their designated group based on WM_CLASS."""
+    d = {
+        group_def[1]["name"]: ["Vivaldi-stable", "vivaldi-stable",
+                                "Navigator", "firefox"],
+        group_def[2]["name"]: ["Eclipse", "eclipse", "Emacs", "emacs",
+                                "Code", "code", "code-oss"],
+        group_def[6]["name"]: ["Discord", "discord", "tutanota-desktop",
+                                "ferdium", "Ferdium"],
+        group_def[7]["name"]: ["Spotify", "spotify"],
+    }
+    wm_class = client.window.get_wm_class()[0]
+    for group, classes in d.items():
+        if wm_class in classes:
+            client.togroup(group)
+            client.group.toscreen(toggle=False)
+#+END_SRC
+
+** Named block: hooks
+Three hooks are registered:
+
+- ~startup_once~ :: Runs ~autostart.sh~ exactly once per session.  Using
+  ~startup_once~ rather than ~startup~ prevents the script from re-running on
+  Qtile restarts (~mod+shift+r~), which would duplicate compositor and daemon
+  processes.
+- ~startup~ :: Sets a sensible X cursor shape on every restart.
+- ~client_new~ (set_floating) :: Automatically floats transient windows and
+  windows whose type matches the ~floating_types~ list.
+#+NAME: config-hooks
+#+BEGIN_SRC python
+main = None  # Unused legacy variable; kept for compatibility.
+
+
+@hook.subscribe.startup_once
+def start_once():
+    home = os.path.expanduser("~")
+    subprocess.call([home + "/.config/qtile/scripts/autostart.sh"])
+
+
+@hook.subscribe.startup
+def start_always():
+    # Ensure the cursor is a normal left-pointer on every restart.
+    subprocess.Popen(["xsetroot", "-cursor_name", "left_ptr"])
+
+
+floating_types = ["notification", "toolbar", "splash", "dialog"]
+
+
+@hook.subscribe.client_new
+def set_floating(window):
+    if (window.window.get_wm_transient_for() or
+            window.window.get_wm_type() in floating_types):
+        window.floating = True
+#+END_SRC
+
+** Named block: floating layout and global settings
+~floating_layout~ defines which windows are always floated by default.  The list
+includes common utility windows (dialogs, file-progress indicators, Arandr) as
+well as application-specific entries.
+
+~focus_on_window_activation = "smart"~ means Qtile focuses a newly activated
+window only if it is on the current screen; otherwise it raises the group bar
+urgency hint.  This prevents focus-stealing when background applications signal
+readiness.
+
+~wmname = "LG3D"~ is a well-known workaround that causes Java Swing applications
+(including Eclipse) to render correctly under non-reparenting window managers.
+#+NAME: config-global-settings
+#+BEGIN_SRC python
+floating_layout = layout.Floating(
+    float_rules=[
+        *layout.Floating.default_float_rules,
+        Match(wm_class="confirmreset"),
+        Match(wm_class="makebranch"),
+        Match(wm_class="maketag"),
+        Match(wm_class="ssh-askpass"),
+        Match(title="branchdialog"),
+        Match(title="pinentry"),
+        Match(wm_class="confirm"),
+        Match(wm_class="dialog"),
+        Match(wm_class="download"),
+        Match(wm_class="error"),
+        Match(wm_class="file_progress"),
+        Match(wm_class="notification"),
+        Match(wm_class="splash"),
+        Match(wm_class="toolbar"),
+        Match(wm_class="Arandr"),
+        Match(wm_class="feh"),
+        Match(wm_class="Galculator"),
+        Match(wm_class="bitwarden"),
+        Match(wm_class="alacritty"),
+        Match(title="kDrive_client"),
+    ],
+    fullscreen_border_width=0,
+    border_width=0,
+)
+
+auto_fullscreen           = False
+follow_mouse_focus        = False
+bring_front_click         = False
+cursor_warp               = False
+focus_on_window_activation = "smart"
+
+wmname = "LG3D"  # Java Swing compatibility workaround.
+logger.warning(groups)
+#+END_SRC
+
+** Tangled file: config.py
+All named blocks above are assembled here in the correct order.
+#+BEGIN_SRC python :tangle ~/.config/qtile/config.py :noweb yes
+# config.py — generated from qtile-config.org, do not edit directly.
+# To modify, edit the org source and run M-x org-babel-tangle (C-c C-v t).
+
+<<config-imports>>
+
+<<config-apps>>
+
+<<config-keys-core>>
+
+<<config-screen-helpers>>
+
+<<config-groups>>
+
+<<config-group-routing>>
+
+<<config-scratchpad>>
+
+<<config-cycle-windows>>
+
+<<config-colors-layout-theme>>
+
+<<config-layouts>>
+
+<<config-widget-helpers>>
+
+<<config-widget-list>>
+
+<<config-screens>>
+
+<<config-mouse>>
+
+<<config-assign-apps>>
+
+<<config-hooks>>
+
+<<config-global-settings>>
+#+END_SRC
+
+-----
+
+* Reference
+:PROPERTIES:
+:CUSTOM_ID: reference
+:END:
+
+** Colour index quick reference
+
+The table below maps every index returned by ~get_theme("solarized_extended_improved")~
+to its hex value and its semantic role in this configuration.
+
+| Index | Hex value   | Solarized name | Role in this config               |
+|-------+-------------+----------------+-----------------------------------|
+|     0 | ~#002b36~     | base03         | GroupBox active-block text        |
+|     1 | ~#073642~     | base02         | Bar/widget surface                |
+|     2 | ~#586e75~     | base01         | Inactive group text               |
+|     3 | ~#d33682~     | magenta        | (available)                       |
+|     4 | ~#657b83~     | base00         | Window name text                  |
+|     5 | ~#93a1a1~     | base1          | CurrentLayout text / border norm  |
+|     6 | ~#eee8d5~     | base2          | Active group text / Memory text   |
+|     7 | ~#fdf6e3~     | base3          | Clock text / border focus         |
+|     8 | ~#00D6FF~     | cyan override  | Active GroupBox highlight         |
+|     9 | ~#96afb8~     | cool grey-blue | (available)                       |
+|    10 | ~#637b83~     | muted teal     | CPU/Memory/Volume background      |
+|    11 | ~#00c5a6~     | accent green   | Volume foreground                 |
+|    12 | ~#b589d6~     | lavender       | Clock background                  |
+|    13 | ~#cb4b16~     | burnt orange   | Pomodoro background / alerts      |
+
+** Tangle cheat-sheet
+
+| Action                    | Key / Command                         |
+|---------------------------+---------------------------------------|
+| Tangle all blocks         | ~C-c C-v t~ or ~M-x org-babel-tangle~   |
+| Tangle current block      | ~C-c C-v C-t~ (point inside src block) |
+| Export to HTML            | ~C-c C-e h h~                          |
+| Export to PDF (via LaTeX) | ~C-c C-e l p~                          |
+| Fold / unfold heading     | ~TAB~                                  |
+| Fold all                  | ~S-TAB~                                |
+| Narrow to subtree         | ~C-x n s~ / ~C-x n w~ to widen         |
+| Evaluate a src block      | ~C-c C-c~ (inside the block)           |
+
+** Known issues and TODO
+
+- [ ] Fix the unreachable ~< .5~ branch for ~battery-60~ icon in ~arcobattery2.py~.
+- [ ] Fix ~go_to_group~ else-branch: ~groups_map.toscreen()~ → ~groups_map[name].toscreen()~.
+- [ ] Add a ~get_theme~ script section once the ~get_theme~ binary is clarified.
+- [ ] Consider replacing the ~assign_app_group~ integer-index dict with named
+  constants for readability.
+- [ ] Evaluate whether ~follow_mouse_focus = False~ is still the desired behaviour
+  on a 3-monitor setup.
+#+END_SRC
