@@ -1280,7 +1280,7 @@ def assign_app_group(client):
         group_def[2]["name"]: ["Eclipse", "eclipse", "Emacs", "emacs",
                                 "Code", "code", "code-oss"],
         group_def[6]["name"]: ["Discord", "discord", "tutanota-desktop",
-                                "ferdium", "Ferdium"],
+                                "ferdium", "Ferdium","nextcloud-talk","beeper","Beeper"],
         group_def[7]["name"]: ["Spotify", "spotify"],
     }
     wm_class = client.window.get_wm_class()[0]
