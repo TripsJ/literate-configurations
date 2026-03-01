@@ -764,7 +764,7 @@ backup() {
         echo -e "${YELLOW}[DRY RUN] Would run: mackup backup${NC}"
     else
         if command -v mackup >/dev/null 2>&1; then
-            mackup backup
+            mackup backup --force
             if [[ $? -ne 0 ]]; then
                 echo -e "${RED}Error: mackup backup failed${NC}"
                 return 1

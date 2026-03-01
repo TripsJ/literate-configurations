@@ -927,13 +927,13 @@ default_group_layout = "monadtall"
 # AZERTY key names.  Use `xkbcli interactive-evdev` to find yours.
 group_def = [
     {"name": "ampersand",   "screen": 0},
-    {"name": "eacute",      "screen": 0, "label": ""},   # Browser
-    {"name": "quotedbl",    "screen": 0, "label": ""},   # Editor
+    {"name": "eacute",      "screen": 0, "label": " "},   # Browser
+    {"name": "quotedbl",    "screen": 0, "label": " "},   # Editor
     {"name": "apostrophe",  "screen": 1},
     {"name": "parenleft",   "screen": 0},
     {"name": "minus",       "screen": 0},
-    {"name": "egrave",      "screen": 2, "label": "󱉐", "layout": "matrix"},  # Comms
-    {"name": "underscore",  "screen": 0, "label": "󰝚"},                      # Media
+    {"name": "egrave",      "screen": 2, "label": "󱉐 ", "layout": "matrix"},  # Comms
+    {"name": "underscore",  "screen": 0, "label": "󰝚 "},                      # Media
 ]
 
 # Fill in defaults for any missing keys.
