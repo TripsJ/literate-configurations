@@ -24,7 +24,6 @@ M-x org-babel-tangle   (or C-c C-v t)
 #+END_EXAMPLE
 #+END_ABSTRACT
 
-#+TOC: headlines 3
 
 * How This Document Works
 :PROPERTIES:
@@ -163,14 +162,15 @@ run volumeicon &
 Add any personal daemons, screen-locker setup, input-method daemon, etc. here.
 #+NAME: autostart-custom
 #+BEGIN_SRC shell
-# ---- Add your own entries below this line ----
-run ckb-next --background &
-run greenclip daemon & #used for clipboard functions
-run variety &
-run yubikey-touch-detector --libnotify &
-run flameshot &
-run syncthingtray &  
-run a2ln &
+  # ---- Add your own entries below this line ----
+  run ckb-next --background &
+  run greenclip daemon & #used for clipboard functions
+  run variety &
+  run yubikey-touch-detector --libnotify &
+  run flameshot &
+  run syncthingtray &  
+  run a2ln &
+  run nextcloud-talk --background &
 #+END_SRC
 
 ** Named block: apply Xmodmap if it exists
