@@ -168,8 +168,8 @@ Add any personal daemons, screen-locker setup, input-method daemon, etc. here.
   run variety &
   run yubikey-touch-detector --libnotify &
   run flameshot &
-  run syncthingtray &  
   run a2ln &
+  run duplicacy-web -background &
   run nextcloud-talk --background &
 #+END_SRC
 
