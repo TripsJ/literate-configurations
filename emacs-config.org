@@ -272,132 +272,133 @@ We create a definer key, i tis case Crtl+Space that acts as a prefix
 Under that definer we can add toogels and keybindings
 
 #+begin_src emacs-lisp
-        (use-package general
-          :config
-          (general-auto-unbind-keys)
-          (general-create-definer jt/leader-keys
-          :map 'override
-          :prefix "C-SPC")
+    (use-package general
+      :config
+      (general-auto-unbind-keys)
+      (general-create-definer jt/leader-keys
+      :map 'override
+      :prefix "C-SPC")
 
-          (general-define-key
-           :prefix "M-SPC"
-           :map 'override
+      (general-define-key
+       :prefix "M-SPC"
+       :map 'override
 
-           "t"  '(:ignore t :which-key "vterm")
-           "tt" '(vterm-other-window :which-key "toggle vterm")
-           "c" '(irc :which-key "IRC")
-           )
+       "t"  '(:ignore t :which-key "vterm")
+       "tt" '(vterm-other-window :which-key "toggle vterm")
+       "c" '(irc :which-key "IRC")
+       )
 
-          (general-define-key
-           :prefix "M-SPC"
-           :keymaps 'vterm-mode-map
+      (general-define-key
+       :prefix "M-SPC"
+       :keymaps 'vterm-mode-map
 
-           "t"  '(:ignore t :which-key "vterm")
-           "tc" '(vterm-copy-mode :which-key "copy mode")
-           )
+       "t"  '(:ignore t :which-key "vterm")
+       "tc" '(vterm-copy-mode :which-key "copy mode")
+       )
 
 
-          (jt/leader-keys
-            "b"  '(:ignore t :which-key "buffers")
-            "bB" '(switch-to-buffer :which-key "select buffer globally")
-            "bb" '(persp-switch-to-buffer* :which-key "switch to buffer in perspective")
-            "bx" '(kill-current-buffer :which-key "Kill this buffer")
-            
-            "c" '(org-roam-capture :which-key "New Node")
+      (jt/leader-keys
+        "b"  '(:ignore t :which-key "buffers")
+        "bB" '(switch-to-buffer :which-key "select buffer globally")
+        "bb" '(persp-switch-to-buffer* :which-key "switch to buffer in perspective")
+        "bx" '(kill-current-buffer :which-key "Kill this buffer")
+        
+        "c" '(org-roam-capture :which-key "New Node")
 
-            "f"  '(:ignore t :which-key "File")
-            "fi" '(insert-file :which-key "Insert")
-            
-             "w"  '(:ignore t :which-key "Windows")
-             "wv" '(split-window-vertically :which-key "Vertical Split")
-             "wh" '(split-window-horizontally :which-key "Horizontal Split")
-             "wx" '(kill-buffer-and-window :which-key "kill buffer and window")
-             "w!" '(delete-window :which-key "close window")
+        "f"  '(:ignore t :which-key "File")
+        "fi" '(insert-file :which-key "Insert")
+        
+         "w"  '(:ignore t :which-key "Windows")
+         "wv" '(split-window-vertically :which-key "Vertical Split")
+         "wh" '(split-window-horizontally :which-key "Horizontal Split")
+         "wx" '(kill-buffer-and-window :which-key "kill buffer and window")
+         "w!" '(delete-window :which-key "close window")
 
-             "p"  '(:ignore t :which-key "prog")
-             ;"pr" '(projectile-run-project-with-tracking :which-key "run project")
-             "pr" '(projectile-run-project :which-key "run project")
-             "pt" '(projectile-test-project :which-key "test project")
-             "pp" '(projectile-switch-project :which-key "switch project")
+         "p"  '(:ignore t :which-key "prog")
+         ;"pr" '(projectile-run-project-with-tracking :which-key "run project")
+         "pr" '(projectile-run-project :which-key "run project")
+         "pt" '(projectile-test-project :which-key "test project")
+         "pp" '(projectile-switch-project :which-key "switch project")
 
-             "k" '(:ignore t :which-key "PKM")
-             "kl" '(org-roam-buffer-toggle :which-key "toggle Roam")
-             "ki" '(org-roam-node-insert :which-key "insert node")
-             "kf" '(org-roam-node-find :which-key "Find Node")
-             "k<" '(org-roam-add-tag :which-key "add roam tag")
+         "k" '(:ignore t :which-key "PKM")
+         "kl" '(org-roam-buffer-toggle :which-key "toggle Roam")
+         "ki" '(org-roam-node-insert :which-key "insert node")
+         "kf" '(org-roam-node-find :which-key "Find Node")
+         "k<" '(org-roam-add-tag :which-key "add roam tag")
 
-             "o"  '(:ignore t :which-key "org")
-             "oa" '(org-agenda :which-key "open agenda")
-             "ow" '(org-agenda-list :which-key "current week")
-             "oc" '(org-capture :which-key "capture")
-             "ol" '(org-store-link :which-key "store-link")
-             "op" '(org-web-tools-read-url-as-org :which-key "save page")
+         "o"  '(:ignore t :which-key "org")
+         "oa" '(org-agenda :which-key "open agenda")
+         "ow" '(org-agenda-list :which-key "current week")
+         "oc" '(org-capture :which-key "capture")
+         "ol" '(org-store-link :which-key "store-link")
+         "op" '(org-web-tools-read-url-as-org :which-key "save page")
+         
+         "d" '(enlight-open :which-key "dashboard")
+             )
 
-                 )
+    (jt/leader-keys
+      :keymaps 'org-agenda-mode-map
 
-        (jt/leader-keys
-          :keymaps 'org-agenda-mode-map
+         "o"  '(:ignore t :which-key "org")
 
-             "o"  '(:ignore t :which-key "org")
+         "od" '(org-agenda-deadline :which-key "set deadline")
+         "os" '(org-agenda-schedule :which-key "schedule task")
+         "ot" '(org-agenda-todo :which-key "toggle todo")
+      )
 
-             "od" '(org-agenda-deadline :which-key "set deadline")
-             "os" '(org-agenda-schedule :which-key "schedule task")
-             "ot" '(org-agenda-todo :which-key "toggle todo")
-          )
+    (use-package hydra)
+    (defhydra hydra-spell (:timeout 20)
+    "spell check"
+    ("l" flyspell-buffer "check")
+    ("c" flyspell-correct-at-point "Correct word")
+    ("j" flyspell-goto-next-error "Next error")
+    ("f" nil "finished" :exit t))
 
-        (use-package hydra)
-        (defhydra hydra-spell (:timeout 20)
-        "spell check"
-        ("l" flyspell-buffer "check")
-        ("c" flyspell-correct-at-point "Correct word")
-        ("j" flyspell-goto-next-error "Next error")
-        ("f" nil "finished" :exit t))
-
-        (jt/leader-keys
-          :keymaps 'python-mode-map
-            "v" '(:ignore t :which-key "venv")
-            "vc" '(pyvenv-create :which-key "create")
-            "va" '(pyvenv-activate :which-key "activate")
-            "vx" '(pyvenv-deactivate :which-key "deactivate")
-            
-            "s" '(hydra-spell/body :which-key "Spelling")
-            "p" '(:ignore t :which-key "prog")
-            "pb" '(blacken-buffer :which-key "run black")
-            "pi" '(pyimpsort-buffer :which-key "sort imports")
-                )
-        (jt/leader-keys
-          :keymaps 'prog-mode-map
-            "p" '(:ignore t :which-key "prog")
-            "ps" '(devdocs-search :which-key "search doc")
+    (jt/leader-keys
+      :keymaps 'python-mode-map
+        "v" '(:ignore t :which-key "venv")
+        "vc" '(pyvenv-create :which-key "create")
+        "va" '(pyvenv-activate :which-key "activate")
+        "vx" '(pyvenv-deactivate :which-key "deactivate")
+        
+        "s" '(hydra-spell/body :which-key "Spelling")
+        "p" '(:ignore t :which-key "prog")
+        "pb" '(blacken-buffer :which-key "run black")
+        "pi" '(pyimpsort-buffer :which-key "sort imports")
             )
-            
-      (jt/leader-keys
-          :keymaps 'org-mode-map
-          "r" '(save-buffer-as-org-with-timestamp :which-key "save for later")
-          "o"  '(:ignore t :which-key "org")
-          "od" '(org-deadline :which-key "set deadline")
-          "os" '(org-schedule :which-key "schedule task")
-          "ot" '(org-todo :which-key "toggle todo")
-          "o<" '(org-set-tags-command :which-key "add tag")
-          "oe" '(org-set-effort :which-key "set effort")
-          "f" '(:ignore t :which-key "File")
-          "ft" '(org-babel-tangle :which-key "Tangle this File")
-          "fx" '(org-export-dispatch :which-key "Export file")
-          "or" '(org-refile :which-key "Archive entry")
-          "i" '(org-toggle-inline-images :which-key "toggle-images")
-          
-          "s" '(hydra-spell/body :which-key "Spelling")
-               )
+    (jt/leader-keys
+      :keymaps 'prog-mode-map
+        "p" '(:ignore t :which-key "prog")
+        "ps" '(devdocs-search :which-key "search doc")
+        )
+        
+  (jt/leader-keys
+      :keymaps 'org-mode-map
+      "r" '(save-buffer-as-org-with-timestamp :which-key "save for later")
+      "o"  '(:ignore t :which-key "org")
+      "od" '(org-deadline :which-key "set deadline")
+      "os" '(org-schedule :which-key "schedule task")
+      "ot" '(org-todo :which-key "toggle todo")
+      "o<" '(org-set-tags-command :which-key "add tag")
+      "oe" '(org-set-effort :which-key "set effort")
+      "f" '(:ignore t :which-key "File")
+      "ft" '(org-babel-tangle :which-key "Tangle this File")
+      "fx" '(org-export-dispatch :which-key "Export file")
+      "or" '(org-refile :which-key "Archive entry")
+      "i" '(org-toggle-inline-images :which-key "toggle-images")
+      
+      "s" '(hydra-spell/body :which-key "Spelling")
+           )
 
-      (defhydra hydra-text-scale (:timeout 4)
-        "scale text"
-        ("j" text-scale-increase "in")
-        ("k" text-scale-decrease "out")
-        ("f" nil "finished" :exit t))
+  (defhydra hydra-text-scale (:timeout 4)
+    "scale text"
+    ("j" text-scale-increase "in")
+    ("k" text-scale-decrease "out")
+    ("f" nil "finished" :exit t))
 
-      (jt/leader-keys
-        "V" '(:ignore t :which-key "view")
-        "Vs" '(hydra-text-scale/body :which-key "scale text"))) 
+  (jt/leader-keys
+    "V" '(:ignore t :which-key "view")
+    "Vs" '(hydra-text-scale/body :which-key "scale text"))) 
 
 #+end_src
 
