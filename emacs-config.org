@@ -773,7 +773,7 @@ cycling through entrys can be done with <j> and <k>.
 pull in lsp support for python
 hook it to python mode and run it with a delay so it doesen start up on every buffer switch
 
-#+begin_src emacs-lisp
+#+begin_quote
   ; add path to pyright to exec-path
   (add-to-list 'exec-path "/usr/bin/pyright")
   (use-package lsp-mode
@@ -792,7 +792,9 @@ hook it to python mode and run it with a delay so it doesen start up on every bu
     (setq lsp-headerline-segments '(path-up-to-project file symbols))
     (lsp-headerline-breadcrumb-mode))
 
+#+end_quote
 
+#+BEGIN_SRC emacs-lisp
   (use-package lsp-ui
     :after lsp-mode
     :hook (lsp-mode . lsp-ui-mode))
