@@ -734,22 +734,6 @@ cycling through entrys can be done with <j> and <k>.
 #+begin_src emacs-lisp
   (use-package blacken)
 #+end_src
-*** install elpy
-#+BEGIN_SRC emacs-lisp
-  (use-package elpy)
-  ;; Enable elpy
-  (elpy-enable)
-
-#+END_SRC
-*** enable flycheck with elpy
-#+BEGIN_SRC emacs-lisp
-
-;; Enable Flycheck
-(when (require 'flycheck nil t)
-  (setq elpy-modules (delq 'elpy-module-flymake elpy-modules))
-  (add-hook 'elpy-mode-hook 'flycheck-mode))
-
-#+END_SRC
 *** support for python venv
 #+begin_src emacs-lisp
 (use-package pyvenv
@@ -772,27 +756,6 @@ cycling through entrys can be done with <j> and <k>.
 *** lsp support
 pull in lsp support for python
 hook it to python mode and run it with a delay so it doesen start up on every buffer switch
-
-#+begin_quote
-  ; add path to pyright to exec-path
-  (add-to-list 'exec-path "/usr/bin/pyright")
-  (use-package lsp-mode
-    :init
-    (setq lsp-keymap-prefix "C-c l")  ; Consistent prefix
-   ; :hook ((python-mode . lsp)  ; Start LSP for Python mode
-    ;       (python-mode . (lambda ()  ; Set venv path *before* LSP starts
-    ;                       (require 'lsp-pyright)
-    ;                        (when (boundp 'pyvenv-virtual-env) ; Check if pyvenv is active
-     ;                         (setq lsp-pyright-venv-path pyvenv-virtual-env))
-      ;                      (lsp-deferred)))) ; Defer server start
-    :commands lsp
-    :config
-    (lsp-enable-which-key-integration t)
-    (define-key lsp-mode-map (kbd "C-c l") lsp-command-map) ; Use the correct prefix
-    (setq lsp-headerline-segments '(path-up-to-project file symbols))
-    (lsp-headerline-breadcrumb-mode))
-
-#+end_quote
 
 #+BEGIN_SRC emacs-lisp
   (use-package lsp-ui
