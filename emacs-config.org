@@ -753,23 +753,31 @@ cycling through entrys can be done with <j> and <k>.
 		)))
   )
 #+end_src
-*** lsp support
-pull in lsp support for python
-hook it to python mode and run it with a delay so it doesen start up on every buffer switch
+*** lsp support with ruff
+
 
 #+BEGIN_SRC emacs-lisp
-  (use-package lsp-ui
-    :after lsp-mode
-    :hook (lsp-mode . lsp-ui-mode))
+(use-package lsp-pyright
+  :ensure t
+  :custom
+  (lsp-pyright-langserver-command "ruff")
+  :hook (python-mode . lsp-deferred))
 
-(with-eval-after-load 'eglot
-  (add-to-list 'eglot-server-programs
-               '(python-base-mode . ("ruff" "server"))))
-(add-hook 'python-base-mode-hook
-          (lambda ()
-            (eglot-ensure)
-            (add-hook 'after-save-hook 'eglot-format nil t)))
+;; Keep your pyvenv (it works with pyright)
+(use-package pyvenv
+  :config
+  (pyvenv-mode t)
+  :hook
+  (pyvenv-post-activate . (lambda () 
+                            (setq lsp-pyright-venv-path pyvenv-virtual-env)
+                            (lsp-restart-workspace)))
+  (pyvenv-post-deactivate . (lambda () 
+                              (setq lsp-pyright-venv-path nil)
+                              (lsp-restart-workspace))))
 
+;; Formatting
+(use-package blacken
+  :hook (python-mode . blacken-mode))
 #+end_src
 *** Syntax Highliting for Django
 #+begin_src emacs-lisp
