@@ -166,39 +166,38 @@ doom modebar requires compat in version 29.1.4.5 but compat on elpa has been upd
 the first time nerd-icons is loaded, you need to manually run 'M-x nerd-icons-install-fonts' 
 ** Dashboard (Enlight)
 #+begin_src emacs-lisp
-    (use-package enlight
-      :ensure t
-      :init
-      ;; Replace the default startup screen
-      (setopt initial-buffer-choice #'enlight)
-      :custom
-    (enlight-content
-     (concat
-      (propertize "\n  Welcome back, J. Trips\n\n"
-                  'face '(:height 1.5 :weight bold))
+        (use-package enlight
+          :ensure t
+          :init
+          ;; Replace the default startup screen
+          (setopt initial-buffer-choice #'enlight)
+          :custom
+        (enlight-content
+         (concat
+          (propertize "\n  Welcome back, J. Trips\n\n"
+                      'face '(:height 1.5 :weight bold))
 
-      (enlight-menu
-       '(("Org"
-          ("Today's Agenda"    (org-agenda nil "a")      "a")
-          ("Week View"         (org-agenda-list)          "w")
-          ("Capture"           (org-capture)              "c"))
+          (enlight-menu
+           '(("Org"
+              ("Today's Agenda"    (org-agenda nil "a")      "a")
+              ("Week View"         (org-agenda-list)          "w")
+              ("Capture"           (org-capture)              "c"))
 
-         ("PKM (Org-Roam)"
-          ("Find Node"         (org-roam-node-find)       "f")
-          ("New Node"          (org-roam-capture)         "n")
-          ("Roam Buffer"       (org-roam-buffer-toggle)   "r"))
+             ("PKM (Org-Roam)"
+              ("Find Node"         (org-roam-node-find)       "f")
+              ("New Node"          (org-roam-capture)         "n"))
 
-         ("Projects"
-          ("Switch Project"    (projectile-switch-project) "p")
-          ("Switch Workspace"  (persp-switch)              "W"))
+             ("Projects"
+              ("Switch Project"    (projectile-switch-project) "p")
+              )
 
-         ("Files"
-          ("Find File"         (counsel-find-file)         "F")
-          ("Open Emacs Config"       (find-file "~/.config/emacs/config.org") "e")
-          ("open Qtile config" (find-file "~/literate_configs/qtile-config.org") "q"))
+             ("Files"
+              ("Find File"         (counsel-find-file)         "F")
+              ("Open Emacs Config"       (find-file "~/.config/emacs/config.org") "e")
+              ("open Qtile config" (find-file "~/literate_configs/qtile-config.org") "q"))
 
-         ("Terminal"
-          ("Toggle vterm"      (jt/vterm-toggle)           "t")))))))
+             ("Terminal"
+              ("Toggle vterm"      (jt/vterm-toggle)           "t")))))))
 #+end_src
 * UI Improvements
 
