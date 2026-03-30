@@ -163,41 +163,91 @@ doom modebar requires compat in version 29.1.4.5 but compat on elpa has been upd
   (doom-themes-org-config))
 #+END_SRC
 
-the first time nerd-icons is loaded, you need to manually run 'M-x nerd-icons-install-fonts' 
+the first time nerd-icons is loaded, you need to manually run 'M-x nerd-icons-install-fonts'
+
+** Enable Recent files functionality
+
+~recentf~ is built into Emacs, keeps track of recently opened files, and is commonly used to surface them at startup or via recentf-open-files.
+
+#+BEGIN_SRC emacs-lisp
+(use-package recentf
+  :hook (after-init . recentf-mode)
+  :custom
+  (recentf-max-saved-items 25)
+  (recentf-auto-cleanup 'never)
+  (recentf-exclude
+   '("^/ssh:" "^/sudo:" "~/.config/emacs/elpa/" "~/.cache/"))
+  :config
+  (setq recentf-save-file (expand-file-name "recentf" user-emacs-directory)))
+  
+#+END_SRC
+
 ** Dashboard (Enlight)
+Enlight is a Dashboard view for emacs with a simple configiuration
+
+To enable a Recent files view we build a helper arround ~recentf~
+
+#+BEGIN_SRC emacs-lisp
+
+(defun jt/recent-files ()
+  "Open the recent files list."
+  (interactive)
+  (recentf-open-files))
+
+#+END_SRC
+
+We also create a command to open our Runnoing Notes File
+
+#+BEGIN_SRC emacs-lisp
+
+(defun jt/open-running-notes ()
+  "Open my quick notes file."
+  (interactive)
+  (find-file "~/Nextcloud/Synced_Org_Files/Running_Notes.org"))
+
+
+#+END_SRC
+
+Now we configure our dashboard
+
 #+begin_src emacs-lisp
-        (use-package enlight
-          :ensure t
-          :init
-          ;; Replace the default startup screen
-          (setopt initial-buffer-choice #'enlight)
-          :custom
-        (enlight-content
-         (concat
-          (propertize "\n  Welcome back, J. Trips\n\n"
-                      'face '(:height 1.5 :weight bold))
+   (use-package enlight
+     :ensure t
+     :init
+     ;; Replace the default startup screen
+     (setopt initial-buffer-choice #'enlight)
+     :custom
+   (enlight-content
+    (concat
+     (propertize "\n  Welcome back, J. Trips\n\n"
+                 'face '(:height 1.5 :weight bold))
 
-          (enlight-menu
-           '(("Org"
-              ("Today's Agenda"    (org-agenda nil "a")      "a")
-              ("Week View"         (org-agenda-list)          "w")
-              ("Capture"           (org-capture)              "c"))
+     (enlight-menu
+      '(("Org"
+         ("Today's Agenda"    (org-agenda nil "a")      "a")
+         ("Week View"         (org-agenda-list)          "w")
+         ("Capture"           (org-capture)              "c"))
 
-             ("PKM (Org-Roam)"
-              ("Find Node"         (org-roam-node-find)       "f")
-              ("New Node"          (org-roam-capture)         "n"))
+        ("PKM (Org-Roam)"
+         ("Find Node"         (org-roam-node-find)       "f")
+         ("New Node"          (org-roam-capture)         "n"))
 
-             ("Projects"
-              ("Switch Project"    (projectile-switch-project) "p")
-              )
+        ("Projects"
+         ("Switch Project"    (projectile-switch-project) "p")
+         )
 
-             ("Files"
-              ("Find File"         (counsel-find-file)         "F")
-              ("Open Emacs Config"       (find-file "~/.config/emacs/config.org") "e")
-              ("open Qtile config" (find-file "~/literate_configs/qtile-config.org") "q"))
+        ("Notes"
+         ("Quick Note"      (org-capture nil "q") "N")
+         ("Open Notes File" (jt/open-running-notes) "o"))
 
-             ("Terminal"
-              ("Toggle vterm"      (jt/vterm-toggle)           "t")))))))
+        ("Files"
+         ("Recent Files" (jt/recent-files) "r")
+         ("Find File"         (counsel-find-file)         "F")
+         ("Open Emacs Config"       (find-file "~/.config/emacs/config.org") "e")
+         ("open Qtile config" (find-file "~/literate_configs/qtile-config.org") "q"))
+
+        ("Terminal"
+         ("Toggle vterm"      (jt/vterm-toggle)           "t")))))))
 #+end_src
 * UI Improvements
 
@@ -1124,132 +1174,136 @@ Here we configure Org Mode and its features itself
 
 #+begin_src emacs-lisp
 
-            (use-package org
-              :hook (org-mode . jt/org-mode-setup)
-              :config
-              (setq org-ellipsis "▼"
-                    org-hide-emphasis-markers t
+         (use-package org
+           :hook (org-mode . jt/org-mode-setup)
+           :config
+           (setq org-ellipsis "▼"
+                 org-hide-emphasis-markers t
+              )
+           (setq org-modules (append org-modules '(org-protocol org-capture)))
+
+
+           ;; Org agenda configuration
+           (setq org-agenda-start-with-log-mode t)
+           (setq org-log-done 'time)
+           (setq org-log-into-drawer t)
+           ;;set files for org agenda
+           (setq org-agenda-files
+                 '("~/Nextcloud/Synced_Org_Files/ToDos_Emacs.org"
+                   "~/Nextcloud/Synced_Org_Files/DailyRepeatedTodos.org"
+                   "~/Nextcloud/Synced_Org_Files/RoamNodes/appointments-29052025|165709.org"
+                   "~/Nextcloud/Synced_Org_Files/RoamNodes/todos-29052025|170117.org"
+                   )
+           )
+           ;;set default for Notes
+           (setq org-default-notes-file "~/Nextcloud/Synced_Org_Files/Running_Notes.org")
+
+           ;; create an archive file
+           (setq org-refile-targets
+                 '(("Archive.org" :maxlevel . 1))
                  )
-              (setq org-modules (append org-modules '(org-protocol org-capture)))
+           ;; save all org buffers after refile
+           (advice-add 'org-refile :after 'org-save-all-org-buffers)
+           ;; set todo states
+           (setq org-todo-keywords
+                 ;; anything after "|" is a completed state and the () define the hotkey
+                 '((sequence "TODO(t)" "NEXT(n)" "|" "DONE(d!)")
+                   (sequence "Not treated(u)" "In Progress(p)" "Later(l)" "|" "Treated(x!)" "Canceled(c)")
+                   ))
 
+           ;; set known tags
+           ;; places are mutually exclusive
+           (setq org-tag-alist
+           '((:startgroup)
+              ; Put mutually exclusive tags here
+              ; Places
+              ("HOME". ?H)
+              ("BTZ" . ?B)
+              ("DSL" . ?D)
+              ("ADG" . ?A)
+              (:endgroup)
+              ("errand" . ?e)
+              ("job" . ?j)
+              ("housework" . ?h)
+              ("appointment" . ?a)
+              ))
 
-              ;; Org agenda configuration
-              (setq org-agenda-start-with-log-mode t)
-              (setq org-log-done 'time)
-              (setq org-log-into-drawer t)
-              ;;set files for org agenda
-              (setq org-agenda-files
-                    '("~/Nextcloud/Synced_Org_Files/ToDos_Emacs.org"
-                      "~/Nextcloud/Synced_Org_Files/DailyRepeatedTodos.org"
-                      "~/Nextcloud/Synced_Org_Files/RoamNodes/appointments-29052025|165709.org"
-                      "~/Nextcloud/Synced_Org_Files/RoamNodes/todos-29052025|170117.org"
-                      )
-              )
-              ;;set default for Notes
-              (setq org-default-notes-file "~/Nextcloud/Synced_Org_Files/Running_Notes.org")
+           ;; agenda views
+           (setq org-agenda-custom-commands
+                 '(("d" "Dashboard"
+                    ((agenda "" ((org-deadline-warning-days 7)))
+                     (todo "NEXT"
+                           ((org-agenda-overriding-header "Next Tasks")))
+                     ))
 
-              ;; create an archive file
-              (setq org-refile-targets
-                    '(("Archive.org" :maxlevel . 1))
-                    )
-              ;; save all org buffers after refile
-              (advice-add 'org-refile :after 'org-save-all-org-buffers)
-              ;; set todo states
-              (setq org-todo-keywords
-                    ;; anything after "|" is a completed state and the () define the hotkey
-                    '((sequence "TODO(t)" "NEXT(n)" "|" "DONE(d!)")
-                      (sequence "Not treated(u)" "In Progress(p)" "Later(l)" "|" "Treated(x!)" "Canceled(c)")
-                      ))
+                   ("n" "Next Tasks"
+                    ((todo "NEXT"
+                           ((org-agenda-overriding-header "Next Tasks")))))
 
-              ;; set known tags
-              ;; places are mutually exclusive
-              (setq org-tag-alist
-              '((:startgroup)
-                 ; Put mutually exclusive tags here
-                 ; Places
-                 ("HOME". ?H)
-                 ("BTZ" . ?B)
-                 ("DSL" . ?D)
-                 ("ADG" . ?A)
-                 (:endgroup)
-                 ("errand" . ?e)
-                 ("job" . ?j)
-                 ("housework" . ?h)
-                 ("appointment" . ?a)
-                 ))
+                   ("W" "Work Tasks"
+                    tags "+job"
+                    ((org-agenda-overriding-header "Work Tasks")))
+                   ("O" "Outside Tasks"
+                    tags "errand|appointment|BTZ|ADG|DSL"
+                 ((org-agenda-overriding-header "Outside Tasks")))
+                   ("h" "Housework"
+                    tags-todo "+housework"
+                    ((org-agenda-overriding-header "Work Tasks")))
 
-              ;; agenda views
-              (setq org-agenda-custom-commands
-                    '(("d" "Dashboard"
-                       ((agenda "" ((org-deadline-warning-days 7)))
-                        (todo "NEXT"
-                              ((org-agenda-overriding-header "Next Tasks")))
-                        ))
+           ;; Low-effort next actions
+           ("e" tags-todo "+TODO=\"NEXT\"+Effort<15&+Effort>0"
+            ((org-agenda-overriding-header "Low Effort Tasks")
+             (org-agenda-max-todos 20)
+             (org-agenda-files org-agenda-files)))
+       ))
 
-                      ("n" "Next Tasks"
-                       ((todo "NEXT"
-                              ((org-agenda-overriding-header "Next Tasks")))))
+           (setq org-capture-templates
+            '(("t" "Task" entry
+               (file+headline "~/Nextcloud/Synced_Org_Files/RoamNodes/todos-29052025|170117.org" "ToDo")
+          "* TODO %?\n  %i\n  %a"
+          :empty-lines 1)
 
-                      ("W" "Work Tasks"
-                       tags "+job"
-                       ((org-agenda-overriding-header "Work Tasks")))
-                      ("O" "Outside Tasks"
-                       tags "errand|appointment|BTZ|ADG|DSL"
-                    ((org-agenda-overriding-header "Outside Tasks")))
-                      ("h" "Housework"
-                       tags-todo "+housework"
-                       ((org-agenda-overriding-header "Work Tasks")))
+         ("m" "Meeting" entry
+          (file+headline "~/Nextcloud/Synced_Org_Files/Running_Apointments.org" "Appointments")
+          "* MEETING %? :meeting:\n%U\n%i\n%a"
+          :empty-lines 1)
 
-              ;; Low-effort next actions
-              ("e" tags-todo "+TODO=\"NEXT\"+Effort<15&+Effort>0"
-               ((org-agenda-overriding-header "Low Effort Tasks")
-                (org-agenda-max-todos 20)
-                (org-agenda-files org-agenda-files)))
-          ))
+         ("n" "Note" entry
+          (file+headline org-default-notes-file "Notes")
+          "* %? :note:\n%U\n%i\n%a"
+          :empty-lines 1)
 
-              (setq org-capture-templates
-               '(("t" "Task" entry
-                  (file+headline "~/Nextcloud/Synced_Org_Files/RoamNodes/todos-29052025|170117.org" "ToDo")
-             "* TODO %?\n  %i\n  %a"
-             :empty-lines 1)
+         ("r" "Read Later" entry
+          (file+headline "~/Nextcloud/Synced_Org_Files/Read_later.org" "Read later")
+          "* [[%x][%^{Title}]]\n:PROPERTIES:\n:CAPTURED_AT: %U\n:END:\n%i\n"
+          :immediate-finish t
+          :jump-to-captured t
+          :prepend t
+          :empty-lines 1 
+          :hook (lambda () (org-web-tools-insert-web-page-as-entry)))
 
-            ("m" "Meeting" entry
-             (file+headline "~/Nextcloud/Synced_Org_Files/Running_Apointments.org" "Appointments")
-             "* MEETING %? :meeting:\n%U\n%i\n%a"
-             :empty-lines 1)
-
-            ("n" "Note" entry
-             (file+headline org-default-notes-file "Notes")
-             "* %? :note:\n%U\n%i\n%a"
-             :empty-lines 1)
-
-            ("r" "Read Later" entry
-             (file+headline "~/Nextcloud/Synced_Org_Files/Read_later.org" "Read later")
-             "* [[%x][%^{Title}]]\n:PROPERTIES:\n:CAPTURED_AT: %U\n:END:\n%i\n"
-             :immediate-finish t
-             :jump-to-captured t
-             :prepend t
-             :empty-lines 1 
-             :hook (lambda () (org-web-tools-insert-web-page-as-entry)))
-
-           ("d" "Default" plain
-                    (file (lambda () (read-file-name "Speicherpfad: ")))
-                    (file "~/Templates/OrgMode/Org-base-properties.org")
-                    :empty-lines 1
-                    :immediate-finish t
-                    :jump-to-captured t)
-           ("c" "Code" plain
-                    (file (lambda () (read-file-name "Speicherpfad: ")))
-                    (file "~/Templates/OrgMode/CodeTangleDefault.org")
-                    :empty-lines 1
-                    :immediate-finish t
-                    :jump-to-captured t)
-            )
-      )
-              (jt/org-font-setup)
-              )
-      
-     (setq org-return-follows-link t)
+        ("d" "Default" plain
+                 (file (lambda () (read-file-name "Speicherpfad: ")))
+                 (file "~/Templates/OrgMode/Org-base-properties.org")
+                 :empty-lines 1
+                 :immediate-finish t
+                 :jump-to-captured t)
+        ("c" "Code" plain
+                 (file (lambda () (read-file-name "Speicherpfad: ")))
+                 (file "~/Templates/OrgMode/CodeTangleDefault.org")
+                 :empty-lines 1
+                 :immediate-finish t
+                 :jump-to-captured t)
+        ("q" "Quick Note" entry
+               (file+headline "~/Nextcloud/Synced_Org_Files/Running_Notes.org" "Quick Notes")
+               "* %U %?\n"
+               :empty-lines 1)
+         )
+   )
+           (jt/org-font-setup)
+           )
+   
+  (setq org-return-follows-link t)
 
 #+end_src
 
