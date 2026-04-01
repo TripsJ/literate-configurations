@@ -513,7 +513,6 @@ vim style keybindings are designed to keep the user from reaching yheir hand too
 Extern: =sudo pacman -S poppler poppler-glib=
 
 #+BEGIN_SRC emacs-lisp
-
 (defun jt/disable-line-numbers ()
   (display-line-numbers-mode 0))
 
@@ -528,28 +527,48 @@ Extern: =sudo pacman -S poppler poppler-glib=
   :config
   (pdf-tools-install :no-query)
 
-  ;; Better default viewing behavior
+  ;; Better defaults
   (setq-default pdf-view-display-size 'fit-page)
   (setq pdf-view-resize-factor 1.1)
-
-  ;; Keep original PDF colors by default
-  ;; Do NOT enable pdf-view-midnight-minor-mode automatically.
-
-  ;; PDF buffers are not compatible with display-line-numbers
-  (add-hook 'pdf-view-mode-hook #'jt/disable-line-numbers)
-
-  ;; Optional quality-of-life settings
   (setq pdf-annot-activate-created-annotations t)
 
-  ;; Leader keys only inside PDF buffers
+  ;; Keep original colors by default
+  ;; Do not enable `pdf-view-midnight-minor-mode` automatically.
+
+  ;; PDF buffers do not work well with line numbers
+  (add-hook 'pdf-view-mode-hook #'jt/disable-line-numbers)
+  (add-hook 'pdf-view-mode-hook #'pdf-view-fit-page-to-window)
+
+  ;; Local leader bindings only in PDF buffers
   (jt/leader-keys
     :keymaps 'pdf-view-mode-map
-    "P"  '(:ignore t                   :which-key "pdf")
-    "Pm" '(jt/pdf-toggle-midnight-mode :which-key "toggle midnight")
-    "Pf" '(pdf-view-fit-page-to-window :which-key "fit page")
-    "Pw" '(pdf-view-fit-width-to-window :which-key "fit width")
-    "Ps" '(pdf-occur :which-key "search in pdf")))
+    "P"  '(:ignore t                     :which-key "pdf")
+    "Pm" '(jt/pdf-toggle-midnight-mode   :which-key "toggle midnight")
+    "Pf" '(pdf-view-fit-page-to-window   :which-key "fit page")
+    "Pw" '(pdf-view-fit-width-to-window  :which-key "fit width")
+    "Ph" '(pdf-view-fit-height-to-window :which-key "fit height")
+    "Ps" '(pdf-occur                     :which-key "search in pdf")
+    "Po" '(pdf-outline                   :which-key "outline")
+    "Pa" '(pdf-annot-list-annotations    :which-key "annotations")))
 
+(with-eval-after-load 'evil-collection
+  (with-eval-after-load 'pdf-view
+    (evil-set-initial-state 'pdf-view-mode 'normal)
+
+    (evil-define-key 'normal pdf-view-mode-map
+      (kbd "j") #'pdf-view-next-line-or-next-page
+      (kbd "k") #'pdf-view-previous-line-or-previous-page
+      (kbd "J") #'pdf-view-next-page
+      (kbd "K") #'pdf-view-previous-page
+      (kbd "gg") #'pdf-view-first-page
+      (kbd "G")  #'pdf-view-last-page
+      (kbd "gr") #'revert-buffer
+      (kbd "+")  #'pdf-view-enlarge
+      (kbd "-")  #'pdf-view-shrink
+      (kbd "=")  #'pdf-view-enlarge
+      (kbd "0")  #'pdf-view-scale-reset
+      (kbd "H")  #'image-backward-hscroll
+      (kbd "L")  #'image-forward-hscroll)))
 #+END_SRC
 
 ** Markdown Mode
@@ -1444,6 +1463,116 @@ begin_src emacs-lisp
   (circe "Bitlbee")
   (circe "OFTC"))
 end_src
+* Sichere Zugangsdaten und secret Verwaltung
+
+Auth source ermöglicht es zugangsdaten und andere secrets in einem separaten verschlüsselten file ab zu legen.
+
+#+begin_src emacs-lisp
+ (use-package auth-source
+  :config
+  (setq auth-sources '("~/.authinfo.gpg")))
+
+(defun jt/get-secret (host user)
+  "Return secret for HOST and USER from auth-source."
+  (let ((match (car (auth-source-search
+                     :host host
+                     :user user
+                     :require '(:secret)))))
+    (when match
+      (let ((secret (plist-get match :secret)))
+        (if (functionp secret)
+            (funcall secret)
+          secret)))))
+
+(defun jt/get-auth-field (host user field)
+  "Return FIELD for HOST and USER from auth-source."
+  (let ((match (car (auth-source-search
+                     :host host
+                     :user user))))
+    (when match
+      (plist-get match field))))
+#+end_src
+
+Die secrets liegen standardmässig im Home Verzeichniss =~/.authinfo.gpg= und die inhalte sind Folgendermassen strukturiert, am beispiel von paperless und wallabag:
+
+#+begin_example
+machine paperless login default password YOUR_PAPERLESS_TOKEN url https://paperless.example.com
+machine wallabag login YOUR_USERNAME password YOUR_WALLABAG_PASSWORD url https://wallabag.example.com clientid YOUR_CLIENT_ID secret YOUR_CLIENT_SECRET
+#+end_example
+* Paperless-ngx
+
+#+begin_src emacs-lisp
+(defcustom jt/paperless-auth-host "paperless"
+  "Auth-source host entry for Paperless."
+  :type 'string :group 'jt)
+
+(defcustom jt/paperless-auth-user "default"
+  "Auth-source user entry for Paperless."
+  :type 'string :group 'jt)
+
+(defun jt/paperless-url ()
+  (or (jt/get-auth-field jt/paperless-auth-host jt/paperless-auth-user :url)
+      (error "No Paperless URL found in auth-source")))
+
+(defun jt/paperless-token ()
+  (or (jt/get-secret jt/paperless-auth-host jt/paperless-auth-user)
+      (error "No Paperless token found in auth-source")))
+
+(defun jt/paperless--get (endpoint)
+  (let* ((url-request-extra-headers
+          `(("Authorization" . ,(concat "Token " (jt/paperless-token)))
+            ("Accept" . "application/json")))
+         (buf (url-retrieve-synchronously
+               (concat (jt/paperless-url) "/api/" endpoint) t t 10)))
+    (when buf
+      (with-current-buffer buf
+        (goto-char (point-min))
+        (re-search-forward "^$" nil t)
+        (json-parse-buffer :object-type 'alist :array-type 'list)))))
+
+(defun jt/paperless-search (query)
+  "Search documents in Paperless-ngx."
+  (interactive "sSearch: ")
+  (let* ((data    (jt/paperless--get
+                   (format "documents/?query=%s&page_size=20"
+                           (url-encode-url query))))
+         (results (alist-get 'results data))
+         (choices (mapcar (lambda (d)
+                            (cons (alist-get 'title d "?")
+                                  (alist-get 'id d)))
+                          results))
+         (sel (completing-read "Document: " (mapcar #'car choices)))
+         (id  (cdr (assoc sel choices))))
+    (browse-url (format "%s/documents/%d/preview/" (jt/paperless-url) id))))
+
+(defun jt/paperless-latest ()
+  "Show latest Paperless documents."
+  (interactive)
+  (let* ((data    (jt/paperless--get
+                   "documents/?ordering=-added&page_size=15"))
+         (results (alist-get 'results data))
+         (choices (mapcar (lambda (d)
+                            (cons (format "%s  [%s]"
+                                          (alist-get 'title d "?")
+                                          (substring (alist-get 'created d "") 0 10))
+                                  (alist-get 'id d)))
+                          results))
+         (sel (completing-read "Document: " (mapcar #'car choices)))
+         (id  (cdr (assoc sel choices))))
+    (browse-url (format "%s/documents/%d/preview/" (jt/paperless-url) id))))
+
+(jt/leader-keys
+  "P"  '(:ignore t           :which-key "Paperless")
+  "Ps" '(jt/paperless-search :which-key "Search")
+  "Pl" '(jt/paperless-latest :which-key "Latest"))
+#+end_src
+ nicht vergessen einen paperless eintrag in =~/.authinfo.gpg= zu hinterlegen wie folgt:
+
+ #+begin_example
+machine paperless login default password YOUR_PAPERLESS_TOKEN url https://paperless.example.com
+ #+end_example
+
+
 * Fixing keys
 #+begin_src emacs-lisp
 
