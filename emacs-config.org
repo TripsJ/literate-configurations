@@ -5,12 +5,6 @@
 #+OPTIONS: toc:2
 #+PROPERTY: header-args:emacs-lisp
 * Basics
-** DISABLED start server
-#+BEGIN_Example
-  (require 'server)
-  (unless (server-running-p)
-    (server-start))
-#+END_Example
 ** set custom file
 This is the location emacs writes customisations to, such as handling of dir-locals
 
@@ -252,17 +246,22 @@ Now we configure our dashboard
 * UI Improvements
 
 ** add line numbers
+#+BEGIN_SRC emacs-lisp
+(column-number-mode)
+(global-display-line-numbers-mode t)
 
-#+begin_src emacs-lisp
-  (column-number-mode)
-  (global-display-line-numbers-mode t)
-
-  ;; Disable line numbers for some modes
-  (dolist(mode '(org-mode-hook
-                 term-mode-hook
-                 eshell-mode-hook))
-    (add-hook mode(lambda()(display-line-numbers-mode 0))))
-#+end_src
+(dolist (mode '(org-mode-hook
+                term-mode-hook
+                eshell-mode-hook
+                shell-mode-hook
+                vterm-mode-hook
+                pdf-view-mode-hook
+                image-mode-hook
+                doc-view-mode-hook
+                dired-mode-hook
+                enlight-mode-hook))
+  (add-hook mode (lambda () (display-line-numbers-mode 0))))
+#+END_SRC
 
 ** add rainbow delimiters to code
 
@@ -507,8 +506,78 @@ vim style keybindings are designed to keep the user from reaching yheir hand too
     :config
     (evil-mc-mode 1))
   (use-package evil-tutor)
- #+end_src 
- 
+ #+end_src
+
+* Dokumente & Dateiformate
+** PDF-Tools
+Extern: =sudo pacman -S poppler poppler-glib=
+
+#+BEGIN_SRC emacs-lisp
+
+(defun jt/disable-line-numbers ()
+  (display-line-numbers-mode 0))
+
+(defun jt/pdf-toggle-midnight-mode ()
+  "Toggle pdf-tools midnight mode in the current PDF buffer."
+  (interactive)
+  (when (derived-mode-p 'pdf-view-mode)
+    (pdf-view-midnight-minor-mode 'toggle)))
+
+(use-package pdf-tools
+  :mode ("\\.pdf\\'" . pdf-view-mode)
+  :config
+  (pdf-tools-install :no-query)
+
+  ;; Better default viewing behavior
+  (setq-default pdf-view-display-size 'fit-page)
+  (setq pdf-view-resize-factor 1.1)
+
+  ;; Keep original PDF colors by default
+  ;; Do NOT enable pdf-view-midnight-minor-mode automatically.
+
+  ;; PDF buffers are not compatible with display-line-numbers
+  (add-hook 'pdf-view-mode-hook #'jt/disable-line-numbers)
+
+  ;; Optional quality-of-life settings
+  (setq pdf-annot-activate-created-annotations t)
+
+  ;; Leader keys only inside PDF buffers
+  (jt/leader-keys
+    :keymaps 'pdf-view-mode-map
+    "P"  '(:ignore t                   :which-key "pdf")
+    "Pm" '(jt/pdf-toggle-midnight-mode :which-key "toggle midnight")
+    "Pf" '(pdf-view-fit-page-to-window :which-key "fit page")
+    "Pw" '(pdf-view-fit-width-to-window :which-key "fit width")
+    "Ps" '(pdf-occur :which-key "search in pdf")))
+
+#+END_SRC
+
+** Markdown Mode
+
+#+begin_src emacs-lisp
+(use-package markdown-mode
+  :mode (("README\\.md\\'" . gfm-mode)
+         ("\\.md\\'"       . markdown-mode)
+         ("\\.markdown\\'" . markdown-mode))
+  :init
+  (setq markdown-command "pandoc")
+  :config
+  (setq markdown-fontify-code-blocks-natively t))
+#+end_src
+
+** Docx & ODT (ox-pandoc Erweiterung)
+
+#+begin_src emacs-lisp
+(with-eval-after-load 'ox-pandoc
+  (setq org-pandoc-options-for-docx
+        '((standalone . t)
+          (reference-doc . "~/.config/emacs/templates/reference.docx")))
+  (setq org-pandoc-options-for-odt
+        '((standalone . t)))
+  (setq org-pandoc-options-for-markdown_github
+        '((standalone . t))))
+#+end_src
+
 * Spelling correction
 To get correction for spelling you need an external programm. I suggest aspell. Aspell needs a dictionary for every language you want to support.
 #+begin_src emacs-lisp
@@ -1375,44 +1444,6 @@ begin_src emacs-lisp
   (circe "Bitlbee")
   (circe "OFTC"))
 end_src
-* autoload perspective
-#+BEGIN_SRC emacs-lisp
-
-(defvar my/session-restored nil
-  "Ensures session and sidebar are only set up once.")
-
-(defun my/restore-session-and-sidebar ()
-  "Load perspective session and open dired-sidebar."
-  ;; Load perspective session
-  (let ((session-file (expand-file-name "persp-session.el" user-emacs-directory)))
-    (when (and (featurep 'perspective)
-               (file-exists-p session-file))
-      (persp-state-load session-file)))
-  ;; Open sidebar pointing at home directory
-  (when (featurep 'dired-sidebar)
-    (let ((default-directory (expand-file-name "~")))
-      (dired-sidebar-show-sidebar))))
-
-(defun my/setup-first-client-frame (frame)
-  "Restore session on the first emacsclient frame only."
-  (when (and (daemonp) (not my/session-restored))
-    (setq my/session-restored t)
-    (with-selected-frame frame
-      (run-with-timer 0.5 nil #'my/restore-session-and-sidebar))))
-
-(add-hook 'server-after-make-frame-hook
-          (lambda () (my/setup-first-client-frame (selected-frame))))
-
-#+END_SRC
-* Gimmicks
-** DISABLED - Discord rich presence
-Add Presence detection for discord
-
-#+begin_example
-  (use-package elcord
-  :init
-  (elcord-mode 1))
-#+end_example
 * Fixing keys
 #+begin_src emacs-lisp
 
