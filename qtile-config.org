@@ -324,9 +324,7 @@ backgrounds that need to be visually distinct from the bar surface.
 #+END_SRC
 
 *** solarized_extended_improved
-Adds a lavender purple (index 12) and a burnt orange alert colour (index 13).
-This is the *active theme* used in ~config.py~ because it provides enough
-distinct colours to fully specify every widget background without repetition.
+Adds a lavender purple (index 12) and a burnt orange alert colour (index 13).It provides enough distinct colours to fully specify every widget background without repetition.
 #+NAME: theme-solarized-extended-improved
 #+BEGIN_SRC python
     "solarized_extended_improved": {
@@ -345,6 +343,32 @@ distinct colours to fully specify every widget background without repetition.
         12: ["#b589d6", "#b589d6"],  # lavender purple ← clock bg
         13: ["#cb4b16", "#cb4b16"],  # burnt orange   ← pomodoro / alert
     },
+#+END_SRC
+
+*** monokai_pro_qtile
+Pallet based on Monokai Pro accent set: pink #FF6188, green #A9DC76, yellow #FFD866, orange #FC9867, cyan #78DCE8, and purple around #AB9DF2, which aligns with public Monokai Pro palette samples and community exports. For the dark structure, I used a charcoal/olive-neutral backbone centered on #2D2A2E, since Monokai-family dark themes are consistently shown with very dark editor backgrounds and soft light foregrounds rather than pure black-and-white contrast.
+
+
+#+NAME: theme-monokai-pro-qtile
+#+BEGIN_SRC python
+"monokai_pro_qtile": {
+    0:  ["#2D2A2E", "#2D2A2E"],  # main background / Monokai Pro dark base
+    1:  ["#221F22", "#221F22"],  # darker panel background
+    2:  ["#403E41", "#403E41"],  # inactive / subtle border
+    3:  ["#FF6188", "#FF6188"],  # pink / red accent
+    4:  ["#727072", "#727072"],  # muted foreground / comment-like grey
+    5:  ["#939293", "#939293"],  # mid light grey
+    6:  ["#FCFCFA", "#FCFCFA"],  # near-white foreground
+    7:  ["#FFFDF8", "#FFFDF8"],  # bright highlight
+    8:  ["#78DCE8", "#78DCE8"],  # cyan
+    9:  ["#AB9DF2", "#AB9DF2"],  # purple
+    10: ["#5B595C", "#5B595C"],  # widget group bg
+    11: ["#A9DC76", "#A9DC76"],  # green
+    12: ["#FFD866", "#FFD866"],  # yellow / clock / attention
+    13: ["#FC9867", "#FC9867"],  # orange / warning / pomodoro
+    14: ["#6E6A86", "#6E6A86"],  # muted violet-grey
+    15: ["#C1C0C0", "#C1C0C0"],  # soft bright neutral
+},
 #+END_SRC
 
 *** solarized_dark_ds
@@ -390,24 +414,25 @@ def get_theme(theme_name):
 
 ** Tangled file: themes.py
 #+BEGIN_SRC python :tangle ~/.config/qtile/themes.py :noweb yes
-# themes.py — generated from qtile-config.org, do not edit directly.
-# To modify, edit the org source and run M-x org-babel-tangle.
+  # themes.py — generated from qtile-config.org, do not edit directly.
+  # To modify, edit the org source and run M-x org-babel-tangle.
 
-THEMES = {
-<<theme-shadow-grey>>
-<<theme-arco-dracula>>
-<<theme-monokai>>
-<<theme-solarized>>
-<<theme-solarized-extended>>
-<<theme-solarized-extended-improved>>
-<<theme-solarized-dark-ds>>
-}
+  THEMES = {
+  <<theme-shadow-grey>>
+  <<theme-arco-dracula>>
+  <<theme-monokai>>
+  <<theme-solarized>>
+  <<theme-solarized-extended>>
+  <<theme-solarized-extended-improved>>
+  <<theme-solarized-dark-ds>>
+  <<theme-monokai-pro-qtile>>
+  }
 
-<<themes-get-theme>>
+  <<themes-get-theme>>
 
-# Example usage:
-# colors = get_theme("solarized_extended_improved")
-# print(colors)
+  # Example usage:
+  # colors = get_theme("solarized_extended_improved")
+  # print(colors)
 #+END_SRC
 
 -----
@@ -897,6 +922,10 @@ keys = [
 #+END_SRC
 
 ** window-to-screen helpers
+:PROPERTIES:
+:CUSTOM_ID: config-window-to-screen
+:END:
+
 These helper functions move the focused window to an adjacent screen.  They are
 used in the keybindings block below.  ~switch_screen=True~ means focus follows
 the window to the destination screen automatically.
@@ -943,6 +972,12 @@ keys.extend([
 #+END_SRC
 
 ** groups
+:PROPERTIES:
+:CUSTOM_ID: group-setup
+:END:
+
+
+
 Groups are configured for an *AZERTY* keyboard layout (French / Belgian).
 Key names were found with ~xkbcli interactive-evdev~; substitute QWERTY names
 (~"1"~, ~"2"~, …) if needed.
@@ -952,6 +987,7 @@ Each group definition carries optional ~label~ (the Nerd Font glyph shown in the
 bar), ~layout~ (overrides ~default_group_layout~), and ~screen~ (the screen the
 group is pinned to on a multi-monitor setup).  Any missing keys are filled in by
 the loop below the definition.
+
 #+NAME: config-groups
 #+BEGIN_SRC python
 groups = []
@@ -998,6 +1034,11 @@ for i in groups:
 #+END_SRC
 
 ** multi-monitor group routing
+:PROPERTIES:
+:CUSTOM_ID: monitor-group-routing
+:END:
+
+#+
 These two functions implement screen-aware group switching: pressing a group
 key sends focus to the correct physical screen rather than always switching the
 primary screen.  This is particularly important for a 3-monitor setup where
@@ -1056,6 +1097,10 @@ def go_to_group_and_move_window(name: str):
 #+END_SRC
 
 ** scratchpad
+:PROPERTIES:
+:CUSTOM_ID: scratchpad
+:END:
+
 The ~ScratchPad~ group provides overlay windows that slide in and out without
 occupying a persistent group.  The terminal dropdown (~AltGr+F11~) is useful for
 quick shell tasks; the ~lf~ file manager dropdown (~AltGr+F10~) gives full-screen
@@ -1119,7 +1164,7 @@ border width or colour applies to all layouts simultaneously.
 #+NAME: config-colors-layout-theme
 #+BEGIN_SRC python
 # Load colour palette — change the string to switch themes globally.
-colors = get_theme("solarized_extended_improved")
+colors = get_theme("monokai_pro_qtile")
 
 layout_theme = {
     "margin":        4,
