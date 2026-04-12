@@ -36,7 +36,16 @@ under ~~/.config/qtile/~.  Blocks belonging to the same file are concatenated in
 document order.  Where a block is marked ~:noweb yes~, it can pull in named
 sub-blocks via the ~<<block-name>>~ syntax, which allows a large logical unit
 (e.g. the full key list) to be assembled from smaller, individually documented
-pieces.
+pieces. The named code blocks are the ones preceded by ~#+NAME: block-name~
+
+#+Begin_Example
+#+NAME: autostart-compositor
+#+BEGIN_SRC shell
+# Compositor
+run picom --daemon &
+#+END_SRC
+#+End_Example
+
 
 ** Exporting
 ~#+OPTIONS: toc:3~ produces a three-level table of contents.  You can narrow or
@@ -66,7 +75,7 @@ Keep this file idempotent where possible — i.e. guard daemon launches with
 ~pgrep~ checks so that a Qtile restart (~mod+shift+r~) does not spawn duplicate
 processes. this is done using the run function in the environment block
 
-** Named block: shebang and environment
+** shebang and environment
 This defines the run function to guard daemons and sets the keyboard layout
 #+NAME: autostart-shebang
 #+BEGIN_SRC shell
@@ -103,7 +112,7 @@ fi
 #+END_SRC
 
 
-** Named block: compositor
+** compositor
 The compositor provides shadows, transparency, and vsync.  ~picom~ is the modern
 fork of ~compton~; adjust the backend (~glx~ vs ~xrender~) to suit your GPU.
 #+NAME: autostart-compositor
@@ -112,7 +121,7 @@ fork of ~compton~; adjust the backend (~glx~ vs ~xrender~) to suit your GPU.
 run picom --daemon &
 #+END_SRC
 
-** Named block: wallpaper
+** wallpaper
 ~nitrogen --restore~ re-applies whatever wallpaper was last set interactively
 with the ~nitrogen~ GUI.  Replace with ~feh --bg-scale~ if you prefer feh.
 #+NAME: autostart-wallpaper
@@ -121,7 +130,7 @@ with the ~nitrogen~ GUI.  Replace with ~feh --bg-scale~ if you prefer feh.
 feh --bg-fill ~/Pictures/Wallpapers/wallpapers-l/b-012.jpg &
 #+END_SRC
 
-** Named block: notification daemon and update checker
+** notification daemon and update checker
 #+NAME: autostart-notifications
 #+BEGIN_SRC shell
 # Notification daemon
@@ -130,7 +139,7 @@ run dunst &
 run /home/sulumar/Scripts/updatecheck/updatecheck.sh &
 #+END_SRC
 
-** Named block: hotkey daemon
+** hotkey daemon
 ~sxhkd~ handles most application-level keybindings outside Qtile itself (media
 keys, application launchers, etc.).  The Qtile ~keys~ list is intentionally kept
 minimal for WM-intrinsic actions only.
@@ -140,7 +149,7 @@ minimal for WM-intrinsic actions only.
 run sxhkd -c ~/.config/qtile/sxhkd/sxhkdrc &
 #+END_SRC
 
-** Named block: polkit agent
+** polkit agent
 A polkit authentication agent is required for GUI applications that need
 privilege escalation (e.g. GParted, package managers).
 #+NAME: autostart-polkit
@@ -148,7 +157,7 @@ privilege escalation (e.g. GParted, package managers).
 # Polkit authentication agent
 run /usr/lib/polkit-gnome/polkit-gnome-authentication-agent-1 &
 #+END_SRC
-** Named block: xfce applets
+** xfce applets
 We need a few applats for things like powermanagement, bluetooth and network management. We take those from XFCE because they are relarively lightweight
 #+NAME: autostart-applets
 #+BEGIN_SRC shell
@@ -158,7 +167,7 @@ numlockx on &
 blueman-applet &
 run volumeicon &
 #+END_SRC
-** Named block: custom additions
+** custom additions
 Add any personal daemons, screen-locker setup, input-method daemon, etc. here.
 #+NAME: autostart-custom
 #+BEGIN_SRC shell
@@ -173,7 +182,7 @@ Add any personal daemons, screen-locker setup, input-method daemon, etc. here.
   run nextcloud-talk --background &
 #+END_SRC
 
-** Named block: apply Xmodmap if it exists
+** apply Xmodmap if it exists
 Xmodmap allows to customize the keyboard behaviour, we use it to overwrite some buttons.
 #+NAME: autostart-xmodmap
 #+BEGIN_SRC shell
@@ -217,7 +226,7 @@ Each palette is stored as a dict keyed by integer index.  The ~get_theme~
 function sorts by key before returning, guaranteeing a stable positional
 mapping even if you add colours in non-sequential order.
 
-** Named blocks: palette definitions
+** palette definitions
 
 *** shadow_grey
 A neutral, high-contrast palette with warm amber and vivid green accents.
@@ -359,7 +368,7 @@ eye fatigue across the span of two monitors.
     },
 #+END_SRC
 
-** Named block: get_theme function
+** get_theme function
 The ~get_theme~ function is deliberately simple.  It raises a ~ValueError~ for
 unknown theme names rather than silently falling back, so misconfiguration is
 caught at startup rather than producing subtly wrong colours at runtime.
@@ -417,11 +426,11 @@ The file is kept as a self-contained module so it can be copied to any Qtile
 install without modification.  Place it in ~~/.config/qtile/~ alongside
 ~config.py~ and import it with ~from arcobattery2 import BatteryIcon~.
 
-** Named block: imports and constants
+** imports and constants
 The battery name (~BAT_NAME~) defaults to ~BAT1~.  If your machine exposes a
 different name (e.g. ~BAT0~, common on Thinkpads), override it here or set it
 via the ~battery_name~ widget parameter at instantiation time.
-#+NAME: arcobat-imports
+#+NAME: arcobattery-imports
 #+BEGIN_SRC python
 from __future__ import division
 
@@ -453,8 +462,8 @@ BATTERY_INFO_FILES = {
 }
 #+END_SRC
 
-** Named block: default icon path helper
-#+NAME: arcobat-icon-path
+** default icon path helper
+#+NAME: arcobattery-icon-path
 #+BEGIN_SRC python
 def default_icon_path():
     """Return the path to the bundled battery icon set inside libqtile."""
@@ -462,7 +471,7 @@ def default_icon_path():
     return os.path.join(root, 'resources', 'battery-icons')
 #+END_SRC
 
-** Named block: _Battery base class
+** Battery base class
 ~_Battery~ is not intended to be instantiated directly.  It provides the
 file-reading machinery (~_load_file~, ~_get_param~, ~_get_info~) shared by both
 concrete widgets.
@@ -470,7 +479,7 @@ concrete widgets.
 The caching dict ~self.filenames~ avoids redundant filesystem probes after the
 first successful read: once the correct file name is found for a given
 parameter, it is stored and reused on every subsequent poll.
-#+NAME: arcobat-base-class
+#+NAME: arcobattery-base-class
 #+BEGIN_SRC python
 class _Battery(base._TextBox):
     """Base battery class — do not instantiate directly."""
@@ -534,7 +543,7 @@ class _Battery(base._TextBox):
         return info
 #+END_SRC
 
-** Named block: Battery text widget
+** Battery text widget
 The ~Battery~ widget renders the battery state as formatted text.  The default
 ~format~ string shows a directional character (~^~ charging, ~V~ discharging), the
 percentage, and the remaining time.  All of these can be overridden via keyword
@@ -542,7 +551,7 @@ arguments when instantiating the widget in ~config.py~.
 
 The ~low_percentage~ threshold (default 10 %) triggers a colour change to
 ~low_foreground~ as a visual warning.
-#+NAME: arcobat-text-widget
+#+NAME: arcobattery-text-widget
 #+BEGIN_SRC python
 class Battery(_Battery):
     """A simple but flexible text-based battery widget."""
@@ -615,7 +624,7 @@ class Battery(_Battery):
             self.bar.draw()
 #+END_SRC
 
-** Named block: BatteryIcon widget
+** BatteryIcon widget
 ~BatteryIcon~ renders a PNG icon chosen from a set of named states (e.g.
 ~battery-70-charge~).  Icons are sourced from ~theme_path~ (defaults to
 libqtile's bundled set) and can be overridden per-state via ~custom_icons~.
@@ -627,7 +636,7 @@ Note: there is a small logical bug in the original ~_get_icon_key~ method — th
 ~< .5~ branch for ~-60~ is unreachable because the ~< .6~ branch above it already
 matches.  This is preserved as-is to maintain compatibility with existing
 configs, but flagged here for awareness.
-#+NAME: arcobat-icon-widget
+#+NAME: arcobattery-icon-widget
 #+BEGIN_SRC python
 class BatteryIcon(_Battery):
     """Battery life indicator widget — renders a theme-aware PNG icon."""
@@ -747,15 +756,15 @@ class BatteryIcon(_Battery):
 #+BEGIN_SRC python :tangle ~/.config/qtile/arcobattery2.py :noweb yes
 # arcobattery2.py — generated from qtile-config.org, do not edit directly.
 
-<<arcobat-imports>>
+<<arcobattery-imports>>
 
-<<arcobat-icon-path>>
+<<arcobattery-icon-path>>
 
-<<arcobat-base-class>>
+<<arcobattery-base-class>>
 
-<<arcobat-text-widget>>
+<<arcobattery-text-widget>>
 
-<<arcobat-icon-widget>>
+<<arcobattery-icon-widget>>
 #+END_SRC
 
 -----
@@ -765,7 +774,7 @@ class BatteryIcon(_Battery):
 :CUSTOM_ID: config
 :END:
 
-** Named block: imports and modifier keys
+** imports and modifier keys
 Qtile's configuration is pure Python executed at startup.  The modifier key
 variables (~mod~, ~mod1~, ~mod2~, ~altgr~) are used throughout the keybinding
 definitions.  Using named variables rather than string literals means a single
@@ -800,7 +809,7 @@ altgr = "mod5"   # AltGr
 home = os.path.expanduser("~")
 #+END_SRC
 
-** Named block: application variables
+** application variables
 Centralising application command strings makes it easy to swap a terminal
 emulator or file manager without hunting through the keybinding list.
 #+NAME: config-apps
@@ -811,7 +820,7 @@ Terminal = "alacritty -e zsh"
 LF = "alacritty -e lf"
 #+END_SRC
 
-** Named block: core keybindings
+** core keybindings
 Most application-level shortcuts are delegated to ~sxhkd~ (see autostart).
 The list here covers only Qtile-intrinsic actions: window management, layout
 switching, focus movement, and resizing.
@@ -862,7 +871,7 @@ keys = [
 ]
 #+END_SRC
 
-** Named block: window-to-screen helpers
+** window-to-screen helpers
 These helper functions move the focused window to an adjacent screen.  They are
 used in the keybindings block below.  ~switch_screen=True~ means focus follows
 the window to the destination screen automatically.
@@ -908,7 +917,7 @@ keys.extend([
 ])
 #+END_SRC
 
-** Named block: groups
+** groups
 Groups are configured for an *AZERTY* keyboard layout (French / Belgian).
 Key names were found with ~xkbcli interactive-evdev~; substitute QWERTY names
 (~"1"~, ~"2"~, …) if needed.
@@ -963,7 +972,7 @@ for i in groups:
     ])
 #+END_SRC
 
-** Named block: multi-monitor group routing
+** multi-monitor group routing
 These two functions implement screen-aware group switching: pressing a group
 key sends focus to the correct physical screen rather than always switching the
 primary screen.  This is particularly important for a 3-monitor setup where
@@ -1021,7 +1030,7 @@ def go_to_group_and_move_window(name: str):
 #                     lazy.function(go_to_group_and_move_window(i.name))))
 #+END_SRC
 
-** Named block: scratchpad
+** scratchpad
 The ~ScratchPad~ group provides overlay windows that slide in and out without
 occupying a persistent group.  The terminal dropdown (~AltGr+F11~) is useful for
 quick shell tasks; the ~lf~ file manager dropdown (~AltGr+F10~) gives full-screen
@@ -1047,7 +1056,7 @@ keys.extend([
 ])
 #+END_SRC
 
-** Named block: window cycling hack
+** window cycling hack
 This ~@lazy.group.function~ decorator cycles through hidden/overlapping windows
 in the current group by bringing them to the front in turn.  It was added to
 make Eclipse (which spawns many sub-windows) usable in a tiling environment.
@@ -1073,7 +1082,7 @@ keys.extend([
 ])
 #+END_SRC
 
-** Named block: colours and layout theme
+** colours and layout theme
 Colours are loaded from ~themes.py~.  The active theme is
 ~solarized_extended_improved~ because it provides 14 distinct colours, which is
 enough to assign a unique background to each widget group on the bar without
@@ -1095,7 +1104,7 @@ layout_theme = {
 }
 #+END_SRC
 
-** Named block: layouts
+** layouts
 Only the layouts that are actually useful on a day-to-day basis are enabled.
 Commented-out alternatives are left for reference.  ~MonadTall~ is the default
 because it mirrors the classic master-stack paradigm and works well for a
@@ -1113,7 +1122,7 @@ layouts = [
 ]
 #+END_SRC
 
-** Named block: widget helpers
+** widget helpers
 ~rounded_box~ is a factory that returns a dict of widget parameters producing a
 visually rounded pill shape using ~libqtile~'s ~border_width~ / ~margin~ system.
 Centralising this avoids repeating the same six keyword arguments on every
@@ -1133,7 +1142,7 @@ def rounded_box(foreground, background):
     }
 #+END_SRC
 
-** Named block: widget list
+** widget list
 The widget list is built by a function so that it can be called multiple times
 (once per screen) without sharing mutable state between bar instances.
 
@@ -1214,7 +1223,7 @@ def init_widget_list():
     ]
 #+END_SRC
 
-** Named block: screen initialisation
+** screen initialisation
 Screen 1 (primary) gets a ~Systray~; screens 2 and 3 share the base widget list.
 The bar ~opacity~ of 0.85 allows a faint bleed of the wallpaper through the bar,
 giving a slight transparency effect without requiring a full compositor blur.
@@ -1235,16 +1244,16 @@ def init_widgets_screen3(): return init_widget_list()
 
 def init_screens():
     return [
-        Screen(top=bar.Bar(widgets=init_widgets_screen1(), size=28, opacity=0.85)),
-        Screen(top=bar.Bar(widgets=init_widgets_screen2(), size=28, opacity=0.85)),
-        Screen(top=bar.Bar(widgets=init_widgets_screen3(), size=28, opacity=0.85)),
+        Screen(top=bar.Bar(widgets=init_widgets_screen1(), size=28, opacity=1)),
+        Screen(top=bar.Bar(widgets=init_widgets_screen2(), size=28, opacity=1)),
+        Screen(top=bar.Bar(widgets=init_widgets_screen3(), size=28, opacity=1)),
     ]
 
 
 screens = init_screens()
 #+END_SRC
 
-** Named block: mouse bindings
+** mouse bindings
 The two ~Drag~ bindings enable the classic ~mod+left-drag~ to move floating
 windows and ~mod+right-drag~ to resize them.  These are the only mouse bindings
 defined; everything else is handled by the window manager's built-in focus
@@ -1262,7 +1271,7 @@ dgroups_key_binder  = None
 dgroups_app_rules   = []
 #+END_SRC
 
-** Named block: application–group assignment
+** application–group assignment
 The ~assign_app_group~ hook intercepts every new window and routes it to a
 predefined group based on its ~WM_CLASS~.  Use ~xprop | grep WM_CLASS~ while
 hovering over a window to find the string to match against.
@@ -1290,7 +1299,7 @@ def assign_app_group(client):
             client.group.toscreen(toggle=False)
 #+END_SRC
 
-** Named block: hooks
+** hooks
 Three hooks are registered:
 
 - ~startup_once~ :: Runs ~autostart.sh~ exactly once per session.  Using
@@ -1327,7 +1336,7 @@ def set_floating(window):
         window.floating = True
 #+END_SRC
 
-** Named block: floating layout and global settings
+** floating layout and global settings
 ~floating_layout~ defines which windows are always floated by default.  The list
 includes common utility windows (dialogs, file-progress indicators, Arandr) as
 well as application-specific entries.
@@ -1463,6 +1472,17 @@ to its hex value and its semantic role in this configuration.
 | Evaluate a src block      | ~C-c C-c~ (inside the block)           |
 
 ** Known issues and TODO
+*** _get_icon_key
+#+BEGIN_WARNING
+*Known bug (preserved for compatibility):* the ~< .5~ branch at ~-60~ is
+unreachable — the ~< .6~ branch above it always matches first.  To fix,
+change ~< .5~ to ~< .7~.
+#+END_WARNING
+#+BEGIN_WARNING
+*Bug:* the ~else~ branch calls ~qtile.groups_map.toscreen()~ instead of
+~qtile.groups_map[name].toscreen()~.  This silently fails on the default
+screen for any group that is not ~egrave~ or ~ampersand~.
+#+END_WARNING
 
 - [ ] Fix the unreachable ~< .5~ branch for ~battery-60~ icon in ~arcobattery2.py~.
 - [ ] Fix ~go_to_group~ else-branch: ~groups_map.toscreen()~ → ~groups_map[name].toscreen()~.
@@ -1471,4 +1491,3 @@ to its hex value and its semantic role in this configuration.
   constants for readability.
 - [ ] Evaluate whether ~follow_mouse_focus = False~ is still the desired behaviour
   on a 3-monitor setup.
-#+END_SRC

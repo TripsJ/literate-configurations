@@ -205,43 +205,52 @@ We also create a command to open our Runnoing Notes File
 Now we configure our dashboard
 
 #+begin_src emacs-lisp
-   (use-package enlight
-     :ensure t
-     :init
-     ;; Replace the default startup screen
-     (setopt initial-buffer-choice #'enlight)
-     :custom
-   (enlight-content
-    (concat
-     (propertize "\n  Welcome back, J. Trips\n\n"
-                 'face '(:height 1.5 :weight bold))
+  (use-package enlight
+    :ensure t
+    :init
+    ;; Replace the default startup screen
+    (setopt initial-buffer-choice #'enlight)
+    :custom
+  (enlight-content
+   (concat
+    (propertize "\n  Welcome back, J. Trips\n\n"
+                'face '(:height 1.5 :weight bold))
 
-     (enlight-menu
-      '(("Org"
-         ("Today's Agenda"    (org-agenda nil "a")      "a")
-         ("Week View"         (org-agenda-list)          "w")
-         ("Capture"           (org-capture)              "c"))
+    (enlight-menu
+     '(("Org"
+        ("Today's Agenda"    (org-agenda nil "a")      "a")
+        ("Week View"         (org-agenda-list)          "w")
+        ("Capture"           (org-capture)              "c"))
+       
+       ("Nextcloud Calendars"
+        ("Sync all calendars (org-caldav)" org-caldav-sync                "s")
+        ("Personal calendar"               jt/org-agenda-nextcloud-personal "p")
+        ("Work calendar"                   jt/org-agenda-nextcloud-work     "w")
+        ("Family calendar"                 jt/org-agenda-nextcloud-shared   "f"))
+       
+       ("PKM (Org-Roam)"
+        ("Find Node"         (org-roam-node-find)       "f")
+        ("New Node"          (org-roam-capture)         "n"))
 
-        ("PKM (Org-Roam)"
-         ("Find Node"         (org-roam-node-find)       "f")
-         ("New Node"          (org-roam-capture)         "n"))
+       ("Projects"
+        ("Switch Project"    (projectile-switch-project) "p")
+        )
 
-        ("Projects"
-         ("Switch Project"    (projectile-switch-project) "p")
-         )
+       ("Notes"
+        ("Quick Note"      (org-capture nil "q") "N")
+        ("Open Notes File" (jt/open-running-notes) "o"))
 
-        ("Notes"
-         ("Quick Note"      (org-capture nil "q") "N")
-         ("Open Notes File" (jt/open-running-notes) "o"))
+       ("Files"
+        ("Recent Files" (jt/recent-files) "r")
+        ("Find File"         (counsel-find-file)         "F")
+        ("Open Emacs Config"       (find-file "~/.config/emacs/config.org") "e")
+        ("open Qtile config" (find-file "~/literate_configs/qtile-config.org") "q"))
 
-        ("Files"
-         ("Recent Files" (jt/recent-files) "r")
-         ("Find File"         (counsel-find-file)         "F")
-         ("Open Emacs Config"       (find-file "~/.config/emacs/config.org") "e")
-         ("open Qtile config" (find-file "~/literate_configs/qtile-config.org") "q"))
+       ("Read it later"
+        ("Open Wallabag" (jt/wallabag-open) "W"))
 
-        ("Terminal"
-         ("Toggle vterm"      (jt/vterm-toggle)           "t")))))))
+       ("Terminal"
+        ("Toggle vterm"      (jt/vterm-toggle)           "t")))))))
 #+end_src
 * UI Improvements
 
@@ -941,7 +950,8 @@ This terminal emulator uses a native library on your system and is thus faster t
           (lambda ()
             (evil-local-mode -1)))
 #+end_src
- 
+
+
 
 * Org Mode config
 [[file:~/Documents/Vault/3. Practical Notes/org-mode_Introduction.org][Org Mode Introduction
@@ -1429,40 +1439,30 @@ END_SRC
 Install circe and add default connection to LiberaChat and a few default channels.
 
 The configuration of the bitlbee server depends on a /.privat.el/ file stored in /.config/emacs/ with the following content =(:bitlbee-password "NickservPassword")=
+#+BEGIN_SRC emacs-lisp
+(use-package circe
+  :config
+  (setq my-credentials-file "~/.config/emacs/.private.el")
+  (setq circe-reduce-lurker-spam t)
 
-begin_src emacs-lisp
-  (use-package circe
-    :config
-    (setq my-credentials-file "~/.config/emacs/.private.el")
-    (setq circe-reduce-lurker-spam t)
-    (defun my-bitlbee-password (server)
-      (with-temp-buffer
-        (insert-file-contents-literally my-credentials-file)
-        (plist-get (read (buffer-string)) :bitlbee-password)))
-
-    (setq circe-network-options
-    '(("Libera Chat"
-       :tls t
-       :nick "sulumar"
-       :channels ("#systemcrafters" "#emacs" "#emacs-circe")
-       ("OFTC"
-       :tls t
-       :nick "sulumar"
-       :channels ("#qtile")
-       )
-      )))
-end_src
-
+  (setq circe-network-options
+        '(("Libera Chat"
+           :tls t
+           :nick "sulumar"
+           :channels ("#systemcrafters" "#emacs" "#emacs-circe"))
+          ("OFTC"
+           :tls t
+           :nick "sulumar"
+           :channels ("#qtile")))))
+#+END_SRC
 add a custom irc functio to connect to libera and bitlbee in one go
-
-begin_src emacs-lisp
+#+BEGIN_SRC emacs-lisp
 (defun irc ()
   "Connect to IRC"
   (interactive)
   (circe "Libera Chat")
-  (circe "Bitlbee")
   (circe "OFTC"))
-end_src
+#+END_SRC
 * Sichere Zugangsdaten und secret Verwaltung
 
 Auth source ermöglicht es zugangsdaten und andere secrets in einem separaten verschlüsselten file ab zu legen.
@@ -1499,72 +1499,137 @@ Die secrets liegen standardmässig im Home Verzeichniss =~/.authinfo.gpg= und di
 machine paperless login default password YOUR_PAPERLESS_TOKEN url https://paperless.example.com
 machine wallabag login YOUR_USERNAME password YOUR_WALLABAG_PASSWORD url https://wallabag.example.com clientid YOUR_CLIENT_ID secret YOUR_CLIENT_SECRET
 #+end_example
+* Nextcloud Kalender Integration
+Erst Installieren wir org-caldav und Integrieren die Kalender
+
+#+BEGIN_SRC emacs-lisp
+
+  (use-package org-caldav
+    :after (org org-agenda)
+    :config
+    ;; Auth-Source für automatisches Passwort-Lookup nutzen
+    (setq plstore-cache-passphrase-for-symmetric-encryption t)
+
+  ;; URL-Authentifizierung über auth-source
+    (setq url-password-entry nil)   ; kein interaktiver Prompt
+    (setq org-icalendar-timezone "Europe/Brussels") ;; sinnvoll für BE [web:5][web:12]
+
+    ;; Mehrere Nextcloud-Kalender
+    (setq org-caldav-calendars
+          `(
+            ;; Privater Kalender
+            (:calendar-id "Personal"            ; Name in Nextcloud
+             :url "https://c447.nl.tabdigital.eu/remote.php/dav/calendars/admin/personal/"
+             :inbox "~/Nextcloud/Synced_Org_Files/cal/personal-inbox.org"
+             :files ("~/Nextcloud/Synced_Org_Files/cal/personal.org"))
+
+            ;; Arbeitskalender
+            (:calendar-id "Work"
+             :url "https://c447.nl.tabdigital.eu/remote.php/dav/calendars/admin/d244a143-d7a7-42b7-84ad-fe0284f47160/"
+             :inbox "~/Nextcloud/Synced_Org_Files/cal/work-inbox.org"
+             :files ("~/Nextcloud/Synced_Org_Files/cal/work.org"))
+
+            ;; Shared Calendar
+            (:calendar-id "Shared Calendar"
+             :url "https://c447.nl.tabdigital.eu/remote.php/dav/calendars/admin/shared-calendar/"
+             :inbox "~/Nextcloud/Synced_Org_Files/cal/sharedcal-inbox.org"
+             :files ("~/Nextcloud/Synced_Org_Files/cal/sharedcal.org"))
+            ))
+
+    ;; optional: zentrale Save-/Backup-Verzeichnisse
+    ;; (setq org-caldav-save-directory "~/.cache/emacs/org-caldav/"
+    ;;       org-caldav-backup-file "~/.cache/emacs/org-caldav-backup.org")
+    )
+#+END_SRC
+
+Jetzt definieren wir Ansichten für die Kalender
+
+#+BEGIN_SRC emacs-lisp
+  (defun jt/org-agenda-nextcloud-personal ()
+    "Wochenansicht nur für den privaten Nextcloud-Kalender."
+    (interactive)
+    (let ((org-agenda-files '("~/Nextcloud/Synced_Org_Files/cal/personal.org")))
+      (org-agenda-list 7)))
+
+  (defun jt/org-agenda-nextcloud-work ()
+    "Wochenansicht nur für den Arbeitskalender."
+    (interactive)
+    (let ((org-agenda-files '("~/Nextcloud/Synced_Org_Files/cal/work.org")))
+      (org-agenda-list 7)))
+
+  (defun jt/org-agenda-nextcloud-shared ()
+    "Wochenansicht nur für den geteilten Kalender."
+    (interactive)
+    (let ((org-agenda-files '("~/Nextcloud/Synced_Org_Files/cal/sharedcal.org")))
+      (org-agenda-list 7)))
+#+END_SRC
 * Paperless-ngx
 
 #+begin_src emacs-lisp
-(defcustom jt/paperless-auth-host "paperless"
-  "Auth-source host entry for Paperless."
-  :type 'string :group 'jt)
+  (defcustom jt/paperless-auth-host "paperless"
+    "Auth-source host entry for Paperless."
+    :type 'string :group 'jt)
 
-(defcustom jt/paperless-auth-user "default"
-  "Auth-source user entry for Paperless."
-  :type 'string :group 'jt)
+  (defcustom jt/paperless-auth-user "default"
+    "Auth-source user entry for Paperless."
+    :type 'string :group 'jt)
 
-(defun jt/paperless-url ()
-  (or (jt/get-auth-field jt/paperless-auth-host jt/paperless-auth-user :url)
+  (defun jt/paperless-url ()
+  (or (jt/get-secret "paperless-url" "default")
       (error "No Paperless URL found in auth-source")))
 
 (defun jt/paperless-token ()
-  (or (jt/get-secret jt/paperless-auth-host jt/paperless-auth-user)
+  (or (jt/get-secret "paperless" "default")
       (error "No Paperless token found in auth-source")))
 
-(defun jt/paperless--get (endpoint)
-  (let* ((url-request-extra-headers
-          `(("Authorization" . ,(concat "Token " (jt/paperless-token)))
-            ("Accept" . "application/json")))
-         (buf (url-retrieve-synchronously
-               (concat (jt/paperless-url) "/api/" endpoint) t t 10)))
-    (when buf
-      (with-current-buffer buf
-        (goto-char (point-min))
-        (re-search-forward "^$" nil t)
-        (json-parse-buffer :object-type 'alist :array-type 'list)))))
 
-(defun jt/paperless-search (query)
-  "Search documents in Paperless-ngx."
-  (interactive "sSearch: ")
-  (let* ((data    (jt/paperless--get
-                   (format "documents/?query=%s&page_size=20"
-                           (url-encode-url query))))
-         (results (alist-get 'results data))
-         (choices (mapcar (lambda (d)
-                            (cons (alist-get 'title d "?")
-                                  (alist-get 'id d)))
-                          results))
-         (sel (completing-read "Document: " (mapcar #'car choices)))
-         (id  (cdr (assoc sel choices))))
-    (browse-url (format "%s/documents/%d/preview/" (jt/paperless-url) id))))
+  (defun jt/paperless--get (endpoint)
+    (let* ((url-request-extra-headers
+            `(("Authorization" . ,(concat "Token " (jt/paperless-token)))
+              ("Accept" . "application/json")))
+           (buf (url-retrieve-synchronously
+                 (concat (jt/paperless-url) "/api/" endpoint) t t 10)))
+      (when buf
+        (with-current-buffer buf
+          (goto-char (point-min))
+          (re-search-forward "^$" nil t)
+          (json-parse-buffer :object-type 'alist :array-type 'list)))))
 
-(defun jt/paperless-latest ()
-  "Show latest Paperless documents."
-  (interactive)
-  (let* ((data    (jt/paperless--get
-                   "documents/?ordering=-added&page_size=15"))
-         (results (alist-get 'results data))
-         (choices (mapcar (lambda (d)
-                            (cons (format "%s  [%s]"
-                                          (alist-get 'title d "?")
-                                          (substring (alist-get 'created d "") 0 10))
-                                  (alist-get 'id d)))
-                          results))
-         (sel (completing-read "Document: " (mapcar #'car choices)))
-         (id  (cdr (assoc sel choices))))
-    (browse-url (format "%s/documents/%d/preview/" (jt/paperless-url) id))))
+  (defun jt/paperless-search (query)
+    "Search documents in Paperless-ngx."
+    (interactive "sSearch: ")
+    (let* ((data    (jt/paperless--get
+                     (format "documents/?query=%s&page_size=20"
+                             (url-encode-url query))))
+           (results (alist-get 'results data))
+           (choices (mapcar (lambda (d)
+                              (cons (alist-get 'title d "?")
+                                    (alist-get 'id d)))
+                            results))
+           (sel (completing-read "Document: " (mapcar #'car choices)))
+           (id  (cdr (assoc sel choices))))
+      (browse-url (format "%s/documents/%d/preview/" (jt/paperless-url) id))))
 
-(jt/leader-keys
-  "P"  '(:ignore t           :which-key "Paperless")
-  "Ps" '(jt/paperless-search :which-key "Search")
-  "Pl" '(jt/paperless-latest :which-key "Latest"))
+  (defun jt/paperless-latest ()
+    "Show latest Paperless documents."
+    (interactive)
+    (let* ((data    (jt/paperless--get
+                     "documents/?ordering=-added&page_size=15"))
+           (results (alist-get 'results data))
+           (choices (mapcar (lambda (d)
+                              (cons (format "%s  [%s]"
+                                            (alist-get 'title d "?")
+                                            (substring (alist-get 'created d "") 0 10))
+                                    (alist-get 'id d)))
+                            results))
+           (sel (completing-read "Document: " (mapcar #'car choices)))
+           (id  (cdr (assoc sel choices))))
+      (browse-url (format "%s/documents/%d/preview/" (jt/paperless-url) id))))
+
+  (jt/leader-keys
+    "P"  '(:ignore t           :which-key "Paperless")
+    "Ps" '(jt/paperless-search :which-key "Search")
+    "Pl" '(jt/paperless-latest :which-key "Latest"))
 #+end_src
  nicht vergessen einen paperless eintrag in =~/.authinfo.gpg= zu hinterlegen wie folgt:
 
@@ -1573,6 +1638,55 @@ machine paperless login default password YOUR_PAPERLESS_TOKEN url https://paperl
  #+end_example
 
 
+* Wallabag integration
+
+Wallabag is a selfhosted read it later service
+
+#+BEGIN_SRC emacs-lisp
+  ;; Wallabag Dashboard Helper
+  (defun jt/wallabag-open ()
+    "Open Wallabag."
+    (interactive)
+    (wallabag))
+  
+  (defun jt/wallabag-config ()
+    (let* ((host     (jt/get-secret "wallabag-host" "default"))
+           (username (jt/get-secret "wallabag-user" "default"))
+           (password (jt/get-secret "wallabag" "default"))
+           (clientid (jt/get-secret "wallabag-clientid" "default"))
+           (secret   (jt/get-secret "wallabag-secret" "default")))
+      (setq wallabag-host host
+            wallabag-username username
+            wallabag-password password
+            wallabag-clientid clientid
+            wallabag-secret secret)))
+
+  (use-package wallabag
+    :vc (:url "https://github.com/chenyanming/wallabag.el" :rev :newest)
+    :defer t
+    :config
+    (jt/wallabag-config))
+  ;; Globale W-Key für schnellen Zugriff (Dashboard + Quick-Open)
+  (jt/leader-keys
+    "W"  '(jt/wallabag-open :which-key "Wallabag"))
+
+  ;; Wallabag-spezifische Keys nur in Wallabag Buffers
+  (jt/leader-keys
+    :keymaps 'wallabag-mode-map
+    "w"  '(:ignore t              :which-key "wallabag")
+    "ww" '(wallabag               :which-key "Open")
+    "ws" '(wallabag-search        :which-key "Search")
+    "wa" '(wallabag-add-entry     :which-key "Add URL")
+    "wu" '(wallabag-update-entries :which-key "Sync")
+    "wr" '(wallabag-refresh       :which-key "Refresh"))
+
+#+END_SRC
+
+Using this will need an addition to =~/.authinfo.gpg=
+
+#+begin_example
+machine wallabag login YOUR_USERNAME password YOUR_WALLABAG_PASSWORD url https://wallabag.example.com clientid YOUR_CLIENT_ID secret YOUR_CLIENT_SECRET
+#+end_example
 * Fixing keys
 #+begin_src emacs-lisp
 
