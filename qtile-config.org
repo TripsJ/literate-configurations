@@ -775,13 +775,8 @@ class BatteryIcon(_Battery):
 :END:
 
 ** imports and modifier keys
-Qtile's configuration is pure Python executed at startup.  The modifier key
-variables (~mod~, ~mod1~, ~mod2~, ~altgr~) are used throughout the keybinding
-definitions.  Using named variables rather than string literals means a single
-change here propagates everywhere.
-
-~mod4~ is the Super (Windows / Command) key.  ~altgr~ (~mod5~) is the AltGr key,
-used here for scratchpad toggles and the window-cycling hack.
+Qtile's configuration is pure Python executed at startup.
+Here we import all the required modules
 #+NAME: config-imports
 #+BEGIN_SRC python
 import os
@@ -799,19 +794,46 @@ from libqtile.config import (
 from libqtile.lazy import lazy
 from libqtile.log_utils import logger
 from themes import get_theme
+#+END_SRC
 
-# Modifier key aliases — change these if your keyboard layout differs.
-mod   = "mod4"   # Super key
-mod1  = "alt"    # Alt
-mod2  = "control"
-altgr = "mod5"   # AltGr
+** Modifier keys
+:PROPERTIES:
+:CUSTOM_ID: modkeys
+:END:
 
-home = os.path.expanduser("~")
+The modifier key variables (~mod~, ~mod1~, ~mod2~, ~altgr~) are used throughout the keybinding
+definitions.  Using named variables rather than string literals means a single
+change here propagates everywhere.
+
+~mod4~ is the Super (Windows / Command) key.  ~altgr~ (~mod5~) is the AltGr key,
+used here for scratchpad toggles and the window-cycling hack
+
+We also define the location of our home directory
+
+#+NAME: config-modkeys
+#+BEGIN_SRC python
+
+
+  # Modifier key aliases — change these if your keyboard layout differs.
+  mod   = "mod4"   # Super key
+  mod1  = "alt"    # Alt
+  mod2  = "control"
+  altgr = "mod5"   # AltGr
+
+  #Home directory location
+  home = os.path.expanduser("~")
+
+
 #+END_SRC
 
 ** application variables
+:PROPERTIES:
+:CUSTOM_ID: applications
+:END:
+
 Centralising application command strings makes it easy to swap a terminal
-emulator or file manager without hunting through the keybinding list.
+emulator or file manager without hunting through the keybinding list. It also helps to create launchers for terminal applications by defining which terminal emulater is used to launch them.
+
 #+NAME: config-apps
 #+BEGIN_SRC python
 # Application commands used in keybindings and scratchpads.
@@ -821,6 +843,9 @@ LF = "alacritty -e lf"
 #+END_SRC
 
 ** core keybindings
+:PROPERTIES:
+:CUSTOM_ID: window-keys
+:END:
 Most application-level shortcuts are delegated to ~sxhkd~ (see autostart).
 The list here covers only Qtile-intrinsic actions: window management, layout
 switching, focus movement, and resizing.
@@ -1391,42 +1416,44 @@ logger.warning(groups)
 ** Tangled file: config.py
 All named blocks above are assembled here in the correct order.
 #+BEGIN_SRC python :tangle ~/.config/qtile/config.py :noweb yes
-# config.py — generated from qtile-config.org, do not edit directly.
-# To modify, edit the org source and run M-x org-babel-tangle (C-c C-v t).
+  # config.py — generated from qtile-config.org, do not edit directly.
+  # To modify, edit the org source and run M-x org-babel-tangle (C-c C-v t).
 
-<<config-imports>>
+  <<config-imports>>
+  
+  <<config-modkeys>>
 
-<<config-apps>>
+  <<config-apps>>
 
-<<config-keys-core>>
+  <<config-keys-core>>
 
-<<config-screen-helpers>>
+  <<config-screen-helpers>>
 
-<<config-groups>>
+  <<config-groups>>
 
-<<config-group-routing>>
+  <<config-group-routing>>
 
-<<config-scratchpad>>
+  <<config-scratchpad>>
 
-<<config-cycle-windows>>
+  <<config-cycle-windows>>
 
-<<config-colors-layout-theme>>
+  <<config-colors-layout-theme>>
 
-<<config-layouts>>
+  <<config-layouts>>
 
-<<config-widget-helpers>>
+  <<config-widget-helpers>>
 
-<<config-widget-list>>
+  <<config-widget-list>>
 
-<<config-screens>>
+  <<config-screens>>
 
-<<config-mouse>>
+  <<config-mouse>>
 
-<<config-assign-apps>>
+  <<config-assign-apps>>
 
-<<config-hooks>>
+  <<config-hooks>>
 
-<<config-global-settings>>
+  <<config-global-settings>>
 #+END_SRC
 
 -----
