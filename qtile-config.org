@@ -880,45 +880,49 @@ focused window one group forward or back — useful for quickly reorganising a
 cluttered workspace.
 #+NAME: config-keys-core
 #+BEGIN_SRC python
-keys = [
-    # SUPER + function keys
-    Key([mod], "f", lazy.window.toggle_fullscreen()),
-    Key([mod], "q", lazy.window.kill()),
-    Key([mod], "t", lazy.window.toggle_floating(), desc="Toggle floating"),
+  keys = [
+      # SUPER + function keys
+      Key([mod], "f", lazy.window.toggle_fullscreen()),
+      Key([mod], "q", lazy.window.kill()),
+      Key([mod], "t", lazy.window.toggle_floating(), desc="Toggle floating"),
 
-    # Qtile control
-    Key([mod, "shift"], "r", lazy.restart()),
+      # Qtile control
+      Key([mod, "shift"], "r", lazy.restart()),
 
-    # Layout control
-    Key([mod, "control"], "n", lazy.layout.normalize()),
-    Key([mod], "space", lazy.next_layout()),
+      # Layout control
+      Key([mod, "control"], "n", lazy.layout.normalize()),
+      Key([mod], "space", lazy.next_layout()),
 
-    # Focus movement
-    Key([mod], "Up",    lazy.layout.up()),
-    Key([mod], "Down",  lazy.layout.down()),
-    Key([mod], "Left",  lazy.layout.left()),
-    Key([mod], "Right", lazy.layout.right()),
+      # Focus movement
+      Key([mod], "Up",    lazy.layout.up()),
+      Key([mod], "Down",  lazy.layout.down()),
+      Key([mod], "Left",  lazy.layout.left()),
+      Key([mod], "Right", lazy.layout.right()),
 
-    # Resize — multiple layout commands are listed so the binding works
-    # across MonadTall, MonadWide, Columns, and other layout types.
-    Key([mod, "control"], "Right",
-        lazy.layout.grow_right(), lazy.layout.grow(),
-        lazy.layout.increase_ratio(), lazy.layout.delete()),
-    Key([mod, "control"], "Left",
-        lazy.layout.grow_left(), lazy.layout.shrink(),
-        lazy.layout.decrease_ratio(), lazy.layout.add()),
-    Key([mod, "control"], "Up",
-        lazy.layout.grow_up(), lazy.layout.grow(),
-        lazy.layout.decrease_nmaster()),
-    Key([mod, "control"], "Down",
-        lazy.layout.grow_down(), lazy.layout.shrink(),
-        lazy.layout.increase_nmaster()),
+      # Resize — multiple layout commands are listed so the binding works
+      # across MonadTall, MonadWide, Columns, and other layout types.
+      Key([mod, "control"], "Right",
+          lazy.layout.grow_right(), lazy.layout.grow(),
+          lazy.layout.increase_ratio(), lazy.layout.delete()),
+      Key([mod, "control"], "Left",
+          lazy.layout.grow_left(), lazy.layout.shrink(),
+          lazy.layout.decrease_ratio(), lazy.layout.add()),
+      Key([mod, "control"], "Up",
+          lazy.layout.grow_up(), lazy.layout.grow(),
+          lazy.layout.decrease_nmaster()),
+      Key([mod, "control"], "Down",
+          lazy.layout.grow_down(), lazy.layout.shrink(),
+          lazy.layout.increase_nmaster()),
 
-    # Flip and shuffle (MonadTall / MonadWide)
-    Key([mod, "control"], "f", lazy.layout.flip()),
-    Key([mod, "shift"],   "Up",   lazy.layout.shuffle_up()),
-    Key([mod, "shift"],   "Down", lazy.layout.shuffle_down()),
-]
+      # Flip and shuffle (MonadTall / MonadWide)
+      Key([mod, "control"], "f", lazy.layout.flip()),
+      Key([mod, "shift"],   "Up",   lazy.layout.shuffle_up()),
+      Key([mod, "shift"],   "Down", lazy.layout.shuffle_down()),
+
+      Key(["mod1"],       "Tab",  lazy.screen.next_group()),
+      Key(["mod1", "shift"], "Tab", lazy.screen.prev_group()),
+
+  ]
 #+END_SRC
 
 ** window-to-screen helpers
@@ -990,47 +994,48 @@ the loop below the definition.
 
 #+NAME: config-groups
 #+BEGIN_SRC python
-groups = []
+   groups = []
 
-default_group_layout = "monadtall"
+   default_group_layout = "monadtall"
 
-# AZERTY key names.  Use `xkbcli interactive-evdev` to find yours.
-group_def = [
-    {"name": "ampersand",   "screen": 0},
-    {"name": "eacute",      "screen": 0, "label": " "},   # Browser
-    {"name": "quotedbl",    "screen": 0, "label": " "},   # Editor
-    {"name": "apostrophe",  "screen": 1},
-    {"name": "parenleft",   "screen": 0},
-    {"name": "minus",       "screen": 0},
-    {"name": "egrave",      "screen": 2, "label": "󱉐 ", "layout": "matrix"},  # Comms
-    {"name": "underscore",  "screen": 0, "label": "󰝚 "},                      # Media
-]
+   # AZERTY key names.  Use `xkbcli interactive-evdev` to find yours.
+   group_def = [
+       {"name": "ampersand",   "screen": 0},
+       {"name": "eacute",      "screen": 0, "label": " "},   # Browser
+       {"name": "quotedbl",    "screen": 0, "label": " "},   # Editor
+       {"name": "apostrophe",  "screen": 1},
+       {"name": "parenleft",   "screen": 0},
+       {"name": "minus",       "screen": 0},
+       {"name": "egrave",      "screen": 2, "label": "󱉐 ", "layout": "matrix"},  # Comms
+       {"name": "underscore",  "screen": 0, "label": "󰝚 "},                      # Media
+   ]
 
-# Fill in defaults for any missing keys.
-for i, g in enumerate(group_def):
-    if "label"   not in g: g["label"]   = f"{i+1}" if i < 9 else str(i+1)
-    if "layout"  not in g: g["layout"]  = default_group_layout
-    if "persist" not in g: g["persist"] = True
+   # Fill in defaults for any missing keys.
+   for i, g in enumerate(group_def):
+       if "label"   not in g: g["label"]   = f"{i+1}" if i < 9 else str(i+1)
+       if "layout"  not in g: g["layout"]  = default_group_layout
+       if "persist" not in g: g["persist"] = True
 
-for g in group_def:
-    groups.append(Group(
-        name=g["name"],
-        layout=g["layout"].lower(),
-        label=g["label"],
-        screen_affinity=g["screen"],
-        persist=g["persist"],
-    ))
+   for g in group_def:
+       groups.append(Group(
+           name=g["name"],
+           layout=g["layout"].lower(),
+           label=g["label"],
+           screen_affinity=g["screen"],
+           persist=g["persist"],
+       ))
 
-# Keybindings for switching to and moving windows to groups.
-for i in groups:
-    keys.extend([
-        Key([mod],          i.name, lazy.group[i.name].toscreen()),
-        Key(["mod1"],       "Tab",  lazy.screen.next_group()),
-        Key(["mod1", "shift"], "Tab", lazy.screen.prev_group()),
-        Key([mod, "shift"], i.name,
-            lazy.window.togroup(i.name),
-            lazy.group[i.name].toscreen()),
-    ])
+   # Keybindings for switching to and moving windows to groups.
+   for i in groups:
+       keys.extend([
+           Key([mod],i.name, lazy.group[i.name].toscreen()),
+           Key([mod, "shift"], i.name,
+               lazy.window.togroup(i.name),
+               lazy.group[i.name].toscreen()),
+       ])
+  
+            
+
 #+END_SRC
 
 ** multi-monitor group routing
@@ -1060,12 +1065,12 @@ def go_to_group(name: str):
         if name == "egrave":
             qtile.focus_screen(2)
             qtile.groups_map[name].toscreen()
-        if name == "ampersand":
+        elif name == "ampersand":
             qtile.focus_screen(1)
             qtile.groups_map[name].toscreen()
         else:
             qtile.focus_screen(0)
-            qtile.groups_map.toscreen()   # BUG: should be groups_map[name]
+            qtile.groups_map[name].toscreen()   # BUG: should be groups_map[name]
     return _inner
 
 
@@ -1455,7 +1460,7 @@ cursor_warp               = False
 focus_on_window_activation = "smart"
 
 wmname = "LG3D"  # Java Swing compatibility workaround.
-logger.warning(groups)
+#logger.warning(groups)
 #+END_SRC
 
 ** Tangled file: config.py
