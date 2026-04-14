@@ -871,7 +871,6 @@ LF = "alacritty -e lf"
 :PROPERTIES:
 :CUSTOM_ID: window-keys
 :END:
-Most application-level shortcuts are delegated to ~sxhkd~ (see autostart).
 The list here covers only Qtile-intrinsic actions: window management, layout
 switching, focus movement, and resizing.
 
@@ -925,6 +924,53 @@ cluttered workspace.
   ]
 #+END_SRC
 
+
+** application keybindings
+Here are most of my application keybindings since i mainly use Qtile as my Window manager and desktop environment anyway. with the exception of desktop apps, which are still in sxhkd
+This way Everything that is workflow relevant is in the same configuration.
+
+#+NAME: config-keys-apps
+#+BEGIN_SRC python
+  #Application specific keybindings
+  keys.extend([
+      # Launchers and menus
+      Key([mod], "F1", lazy.spawn("bash -lc '. ~/Scripts/rofi/bookmarks.sh'"), desc="Bookmarks"),
+      Key([altgr], "F1", lazy.spawn("bash -lc '. ~/Scripts/helpfiles/help.sh'"), desc="Help screen"),
+      Key([mod], "F2", lazy.spawn("bash -lc '. ~/Scripts/rofi/editorselector.sh'"), desc="Editor selector"),
+      Key([mod], "F3", lazy.spawn("rofi-bluetooth"), desc="Bluetooth menu"),
+      Key([mod], "F8", lazy.spawn("bash -lc '. ~/Scripts/rofi/wifiselector.sh'"), desc="WiFi selector"),
+      Key([mod], "F10", lazy.spawn("bash -lc '. ~/Scripts/rofi/rofi-surfraw-websearch.sh'"), desc="Web search"),
+      Key([mod], "F12", lazy.spawn("rofi -config ~/.config/rofi/config-menu.rasi -show drun"), desc="Application launcher"),
+      Key(["control"], "Escape", lazy.spawn("rofi -show run"), desc="Run launcher"),
+      Key(["control"], "F1", lazy.spawn("rofi -show ssh"), desc="SSH launcher"),
+      Key([mod], "Tab", lazy.spawn("rofi -show window"), desc="Window switcher"),
+      Key([mod], "c", lazy.spawn("rofi -modi \"clipboard:greenclip print\" -show clipboard -run-command '{cmd}'"), desc="Clipboard history"),
+      Key([mod], "e", lazy.spawn("rofi -modi emoji -show emoji"), desc="Emoji picker"),
+
+      # Applications
+      # SYSTEM APPS
+      Key([mod], "Return", lazy.spawn("alacritty"), desc="Terminal"),
+      Key([mod], "KP_Enter", lazy.spawn("alacritty"), desc="Terminal (keypad)"),
+      Key([mod, "shift"], "Return", lazy.spawn("thunar"), desc="File manager"),
+
+      Key([mod], "Escape", lazy.spawn("xkill"), desc="XKill"),
+      Key([], "Print", lazy.spawn("flameshot gui"), desc="Screenshot"),
+
+      # Session and desktop tools
+      Key([mod], "x", lazy.spawn("bash -lc '. ~/Scripts/rofi/power.sh'"), desc="Power menu"),
+      Key(["control", "mod1"], "r", lazy.spawn("rofi-theme-selector"), desc="Rofi theme selector"),
+      Key([mod], "l", lazy.spawn("betterlockscreen -l --off 180"), desc="Lock screen"),
+      Key(["control", "mod1"], "Delete", lazy.spawn("bash -lc '. ~/Scripts/rofi/processkiller.sh'"), desc="Process killer"),
+
+      # Xrandr cal for the big Monitor
+      Key([mod, "shift"], "w", lazy.spawn("bash -lc 'xrandr --output eDP-1 --off --output DP-1 --off --output HDMI-1 --off --output DP-2 --off --output HDMI-2 --primary --mode 2560x1440 --pos 0x0 --rotate normal && qtile cmd-obj -o cmd -f restart'"), desc="External screen only"),
+
+      # Other applications
+
+  ])
+
+
+#+END_SRC
 ** window-to-screen helpers
 :PROPERTIES:
 :CUSTOM_ID: config-window-to-screen
@@ -1470,7 +1516,7 @@ All named blocks above are assembled here in the correct order.
   # To modify, edit the org source and run M-x org-babel-tangle (C-c C-v t).
 
   <<config-imports>>
-  
+
   <<config-modkeys>>
 
   <<config-apps>>
@@ -1501,6 +1547,8 @@ All named blocks above are assembled here in the correct order.
 
   <<config-assign-apps>>
 
+  <<config-keys-apps>>
+
   <<config-hooks>>
 
   <<config-global-settings>>
@@ -1513,27 +1561,6 @@ All named blocks above are assembled here in the correct order.
 :CUSTOM_ID: reference
 :END:
 
-** Colour index quick reference
-
-The table below maps every index returned by ~get_theme("solarized_extended_improved")~
-to its hex value and its semantic role in this configuration.
-
-| Index | Hex value   | Solarized name | Role in this config               |
-|-------+-------------+----------------+-----------------------------------|
-|     0 | ~#002b36~     | base03         | GroupBox active-block text        |
-|     1 | ~#073642~     | base02         | Bar/widget surface                |
-|     2 | ~#586e75~     | base01         | Inactive group text               |
-|     3 | ~#d33682~     | magenta        | (available)                       |
-|     4 | ~#657b83~     | base00         | Window name text                  |
-|     5 | ~#93a1a1~     | base1          | CurrentLayout text / border norm  |
-|     6 | ~#eee8d5~     | base2          | Active group text / Memory text   |
-|     7 | ~#fdf6e3~     | base3          | Clock text / border focus         |
-|     8 | ~#00D6FF~     | cyan override  | Active GroupBox highlight         |
-|     9 | ~#96afb8~     | cool grey-blue | (available)                       |
-|    10 | ~#637b83~     | muted teal     | CPU/Memory/Volume background      |
-|    11 | ~#00c5a6~     | accent green   | Volume foreground                 |
-|    12 | ~#b589d6~     | lavender       | Clock background                  |
-|    13 | ~#cb4b16~     | burnt orange   | Pomodoro background / alerts      |
 
 ** Tangle cheat-sheet
 
