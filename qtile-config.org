@@ -841,7 +841,7 @@ We also define the location of our home directory
 
   # Modifier key aliases — change these if your keyboard layout differs.
   mod   = "mod4"   # Super key
-  mod1  = "alt"    # Alt
+  alt  = "mod1"    # Alt
   mod2  = "control"
   altgr = "mod5"   # AltGr
 
@@ -861,12 +861,29 @@ emulator or file manager without hunting through the keybinding list. It also he
 
 #+NAME: config-apps
 #+BEGIN_SRC python
-# Application commands used in keybindings and scratchpads.
-Terminal = "alacritty -e zsh"
-# PassManager = "bitwarden-desktop"
-LF = "alacritty -e lf"
+  # Application commands used in keybindings and scratchpads.
+  Terminal = "alacritty -e zsh"
+  # PassManager = "bitwarden-desktop"
+  LF = "alacritty -e lf"
+  AI = "vivaldi https://perplexity.ai"
 #+END_SRC
 
+** Scratchpad  hide helper
+since i tend to use my Super Q Keybinding to kill my scratchpads, i add in this little helper
+
+#+NAME: kill_or_hide_helper
+#+BEGIN_SRC python
+
+def kill_or_hide(qtile):
+    w = qtile.current_window
+    if not w:
+        return
+    if w.group and w.group.name == "scratchpad":
+        w.toggle_minimize()  # or use scratchpad toggle logic if preferred
+    else:
+        w.kill()
+
+#+END_SRC
 ** core keybindings
 :PROPERTIES:
 :CUSTOM_ID: window-keys
@@ -882,7 +899,7 @@ cluttered workspace.
   keys = [
       # SUPER + function keys
       Key([mod], "f", lazy.window.toggle_fullscreen()),
-      Key([mod], "q", lazy.window.kill()),
+      Key([mod], "q", lazy.function(kill_or_hide)),
       Key([mod], "t", lazy.window.toggle_floating(), desc="Toggle floating"),
 
       # Qtile control
@@ -967,6 +984,11 @@ This way Everything that is workflow relevant is in the same configuration.
 
       # Other applications
 
+    Key([alt], "s", lazy.spawn("spotify"), desc="Spotify"),
+     Key([alt], "v", lazy.spawn("pavucontrol"), desc="Volume control"),
+    Key([alt], "F12", lazy.spawn("bitwarden-desktop"), desc="Bitwarden"),
+    Key([alt], "m", lazy.spawn("tutanota-desktop"), desc="Mail"),
+    Key([alt], "f", lazy.spawn("beeper"), desc="beeper")
   ])
 
 
@@ -1161,20 +1183,29 @@ Increase ~width~ / ~height~ (0–1, proportion of screen) or adjust ~x~ / ~y~ to
 reposition dropdowns.
 #+NAME: config-scratchpad
 #+BEGIN_SRC python
-groups.append(ScratchPad("scratchpad", [
-    DropDown("term",     Terminal, width=0.6, height=0.6,
-             x=0.3, y=0.2, opacity=1),
-    # DropDown("bitwarden", PassManager, width=0.6, height=0.6,
-    #          x=0.3, y=0.0, opacity=1, on_focus_lost_hide=False),
-    DropDown("lfscreen", LF, width=0.9, height=0.9,
-             x=0.0, y=0.0, opacity=1),
-]))
+  groups.append(ScratchPad("scratchpad", [
+      DropDown("term",     Terminal, width=0.6, height=0.6,
+               x=0.3, y=0.2, opacity=1),
+      # DropDown("bitwarden", PassManager, width=0.6, height=0.6,
+      #          x=0.3, y=0.0, opacity=1, on_focus_lost_hide=False),
+      DropDown("lfscreen", LF, width=0.9, height=0.9,
+               x=0.0, y=0.0, opacity=1),
+      DropDown("ai", AI, width=0.7,
+            height=0.7,
+            x=0.2,      # (1 - 0.6) / 2
+            y=0.2,     # (1 - 0.5) / 2
+            opacity=0.9,
+            on_focus_lost_hide=True,),
+      
+  ]))
 
-keys.extend([
-    Key([altgr], "F11", lazy.group["scratchpad"].dropdown_toggle("term")),
-    # Key([altgr], "F12", lazy.group["scratchpad"].dropdown_toggle("bitwarden")),
-    Key([altgr], "F10", lazy.group["scratchpad"].dropdown_toggle("lfscreen")),
-])
+  keys.extend([
+      Key([altgr], "F11", lazy.group["scratchpad"].dropdown_toggle("term")),
+      # Key([altgr], "F12", lazy.group["scratchpad"].dropdown_toggle("bitwarden")),
+      Key([altgr], "F10", lazy.group["scratchpad"].dropdown_toggle("lfscreen")),
+      Key([alt], "a", lazy.group["scratchpad"].dropdown_toggle("ai")),
+
+  ])
 #+END_SRC
 
 ** window cycling hack
@@ -1512,46 +1543,48 @@ wmname = "LG3D"  # Java Swing compatibility workaround.
 ** Tangled file: config.py
 All named blocks above are assembled here in the correct order.
 #+BEGIN_SRC python :tangle ~/.config/qtile/config.py :noweb yes
-  # config.py — generated from qtile-config.org, do not edit directly.
-  # To modify, edit the org source and run M-x org-babel-tangle (C-c C-v t).
+    # config.py — generated from qtile-config.org, do not edit directly.
+    # To modify, edit the org source and run M-x org-babel-tangle (C-c C-v t).
 
-  <<config-imports>>
+    <<config-imports>>
 
-  <<config-modkeys>>
+    <<config-modkeys>>
+    
+    <<config-apps>>
 
-  <<config-apps>>
+    <<kill_or_hide_helper>>
 
-  <<config-keys-core>>
+    <<config-keys-core>>
 
-  <<config-screen-helpers>>
+    <<config-screen-helpers>>
 
-  <<config-groups>>
+    <<config-groups>>
 
-  <<config-group-routing>>
+    <<config-group-routing>>
 
-  <<config-scratchpad>>
+    <<config-scratchpad>>
 
-  <<config-cycle-windows>>
+    <<config-cycle-windows>>
 
-  <<config-colors-layout-theme>>
+    <<config-colors-layout-theme>>
 
-  <<config-layouts>>
+    <<config-layouts>>
 
-  <<config-widget-helpers>>
+    <<config-widget-helpers>>
 
-  <<config-widget-list>>
+    <<config-widget-list>>
 
-  <<config-screens>>
+    <<config-screens>>
 
-  <<config-mouse>>
+    <<config-mouse>>
 
-  <<config-assign-apps>>
+    <<config-assign-apps>>
 
-  <<config-keys-apps>>
+    <<config-keys-apps>>
 
-  <<config-hooks>>
+    <<config-hooks>>
 
-  <<config-global-settings>>
+    <<config-global-settings>>
 #+END_SRC
 
 -----
